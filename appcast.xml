@@ -6,6 +6,20 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Lull</title>
         <item>
+            <title>0.1.2</title>
+            <pubDate>Tue, 10 Nov 2026 20:47:26 -0600</pubDate>
+            <link>https://github.com/dlev02/Lull/releases/tag/v0.1.2</link>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[
+- Clicking the menu bar icon while the panel is open now closes it, instead of opening it again.
+- Buttons and shortcut keys in the panel no longer flash dark as the panel opens and closes.
+- The "Made by" link goes to drewlevinson.me.
+]]></description>
+            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.2/Lull-0.1.2.zip" length="2684765" type="application/octet-stream" sparkle:edSignature="mWNNQSVcLR2bBnJutR2trYq03N7lmRZxRbQB132rR4ErXFPLIYRXh/0ZR11V8scIA6rS4iNOu8uLulbBqZHzDQ=="/>
+        </item>
+        <item>
             <title>0.1.1</title>
             <pubDate>Tue, 10 Nov 2026 19:50:04 -0600</pubDate>
             <link>https://github.com/dlev02/Lull/releases/tag/v0.1.1</link>
@@ -68,6 +82,6 @@ The first version of Lull. It blurs everything on screen except the window you a
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: Gj+RKJKoYmRF54KDPvPNdS6360bhEaROTvOczgzUnCrbJBgM0e3Gtc0ZBM5x5RQCGnZqkbqv0uatyNPqGYRqDw==
-length: 4105
+edSignature: fvvV2cXniW0hN+ZsBv9KEPF9O0Csm9gPJaGUKy9M/JlrcpsNRBRQ2t9B/gL8i6p8SEvRaQwbCyh2oZUTjCU/AQ==
+length: 5087
 -->
