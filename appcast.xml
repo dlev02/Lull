@@ -6,6 +6,20 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Lull</title>
         <item>
+            <title>0.1.4</title>
+            <pubDate>Wed, 11 Nov 2026 02:39:48 -0600</pubDate>
+            <link>https://github.com/dlev02/Lull/releases/tag/v0.1.4</link>
+            <sparkle:version>5</sparkle:version>
+            <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[
+- With Stage Manager on, the strip sits on one soft, even patch, without the boxes that showed between and around its thumbnails.
+- Bringing a window out of Stage Manager's strip no longer leaves the blur off until the next click.
+- A window in full screen, such as a YouTube video, is no longer covered by the blur.
+]]></description>
+            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.4/Lull-0.1.4.zip" length="2689722" type="application/octet-stream" sparkle:edSignature="oPb3bmKhL2nlg3hAIYWTeMPIkUcGtevIDr3NEGao8dGCERBNUuoTVv38yh00C6ptV4Fc8Px6GgcFPcusJwYxBQ=="/>
+        </item>
+        <item>
             <title>0.1.3</title>
             <pubDate>Wed, 11 Nov 2026 01:48:33 -0600</pubDate>
             <link>https://github.com/dlev02/Lull/releases/tag/v0.1.3</link>
@@ -31,26 +45,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.2/Lull-0.1.2.zip" length="2684765" type="application/octet-stream" sparkle:edSignature="mWNNQSVcLR2bBnJutR2trYq03N7lmRZxRbQB132rR4ErXFPLIYRXh/0ZR11V8scIA6rS4iNOu8uLulbBqZHzDQ=="/>
         </item>
-        <item>
-            <title>0.1.1</title>
-            <pubDate>Tue, 10 Nov 2026 19:50:04 -0600</pubDate>
-            <link>https://github.com/dlev02/Lull/releases/tag/v0.1.1</link>
-            <sparkle:version>2</sparkle:version>
-            <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description sparkle:format="markdown"><![CDATA[
-A polish pass on the panel.
-
-- Scrolling the panel is smooth. It used to stall whenever the pointer was between two cards.
-- Sliders now snap to steps, with a tick at each, so a setting is easy to return to.
-- Cards have more room, hairlines between rows and clearer icons, and buttons respond to the pointer.
-- Clicking the space between cards closes the panel.
-]]></description>
-            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.1/Lull-0.1.1.zip" length="2683641" type="application/octet-stream" sparkle:edSignature="BEjK6LDfKyrXkkyjzwWMU3+RIPix2WecapL4kYaCrUAv4NK7yT1kBM+ohUtkst6a43s3ecZHNJ74vawFI75dCg=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: zdCfKjXslCUiildAW8s7hn3tzA8Ucs+Xp/JTxyhqoIm5hDPdlp3xN8eJdYnedw8dnxXWDqjwp6eZAuRGiM1gAQ==
-length: 3476
+edSignature: Swhc17cA5pmQ7RU7sJhSyAHg2M9EldehKf7K6t62/3v0M1L/Igp1MQwcCU2ToJRe7Tps9eQq9QkI7KHCAZ8YAA==
+length: 3430
 -->
