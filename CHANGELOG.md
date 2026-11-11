@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 — 2026-11-11
+
+- With Stage Manager on, the clear patches around its thumbnails follow the strip as it slides in and out, and fade into the blur instead of ending in a hard edge. Stray boxes no longer linger beside the strip.
+
 ## 0.1.2 — 2026-11-10
 
 - Clicking the menu bar icon while the panel is open now closes it, instead of opening it again.

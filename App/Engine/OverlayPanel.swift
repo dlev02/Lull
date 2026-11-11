@@ -177,27 +177,45 @@ final class OverlayPanel: NSPanel {
     holes = newHoles
   }
 
+  /// How far the clear area reaches past a thumbnail, and how soft its edge is. A hard
+  /// edge reads as a box, because the blur outside it carries the thumbnail's own
+  /// smudge while the wallpaper inside does not.
+  private static let holeMargin: CGFloat = 6
+  private static let holeSoftness: CGFloat = 8
+
   private func makeHoleMask(_ holes: [CGRect], in bounds: CGRect) -> CALayer? {
     guard !holes.isEmpty else { return nil }
-    // Holes overlap (a thumbnail and its app icon), so merge them into one outline
-    // first; otherwise the even-odd fill below would turn the overlap solid again.
-    var outline = CGPath(rect: .zero, transform: nil)
-    for hole in holes {
-      let rounded = CGPath(
-        roundedRect: hole, cornerWidth: min(10, hole.width / 2), cornerHeight: min(10, hole.height / 2), transform: nil
-      )
-      outline = outline.union(rounded)
+    // Holes overlap (a thumbnail and its app icon), so merge them into one outline.
+    func outline(grownBy margin: CGFloat) -> CGPath {
+      holes.reduce(CGPath(rect: .zero, transform: nil)) { outline, hole in
+        let rect = hole.insetBy(dx: -margin, dy: -margin)
+        let corner = min(10, hole.width / 2, hole.height / 2) + margin
+        return outline.union(CGPath(roundedRect: rect, cornerWidth: corner, cornerHeight: corner, transform: nil))
+      }
     }
     let mask = CAShapeLayer()
     mask.frame = bounds
     if placement == .beneathFocus {
-      let path = CGMutablePath()
-      path.addRect(bounds)
-      path.addPath(outline)
-      mask.fillRule = .evenOdd
+      // The overlay itself, with its shadow spilling softly into each hole.
+      let margin = OverlayPanel.holeMargin
+      let path = CGPath(rect: bounds.insetBy(dx: -4 * margin, dy: -4 * margin), transform: nil)
+        .subtracting(outline(grownBy: margin))
       mask.path = path
+      mask.shadowPath = path
+      mask.shadowColor = .black
+      mask.shadowOpacity = 1
+      mask.shadowOffset = .zero
+      mask.shadowRadius = OverlayPanel.holeSoftness
     } else {
-      mask.path = outline
+      // Solid wherever the other overlay thins, then fading out beneath it, so the
+      // other overlay's blur never meets an edge in what it samples.
+      let path = outline(grownBy: OverlayPanel.holeMargin)
+      mask.path = path
+      mask.shadowPath = path
+      mask.shadowColor = .black
+      mask.shadowOpacity = 1
+      mask.shadowOffset = .zero
+      mask.shadowRadius = 4 * OverlayPanel.holeSoftness
     }
     return mask
   }

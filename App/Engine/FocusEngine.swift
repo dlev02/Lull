@@ -41,6 +41,11 @@ final class FocusEngine {
   @ObservationIgnored private(set) var usesWindowEvents = false
   @ObservationIgnored private var mouseMonitor: Any?
   @ObservationIgnored private var followUps: [DispatchWorkItem] = []
+  /// Following Stage Manager's strip while it slides; see `followStrip`.
+  @ObservationIgnored private var lastStripRects: [CGRect] = []
+  @ObservationIgnored private var stripFollowUp: DispatchWorkItem?
+  @ObservationIgnored private var stripFollowStart: Date?
+  @ObservationIgnored private var stripQuietChecks = 0
   @ObservationIgnored private var lastFrontPID: pid_t?
   @ObservationIgnored private var lastLook: OverlayLook?
   @ObservationIgnored private var lastMode: FocusMode?
@@ -176,7 +181,12 @@ final class FocusEngine {
       // Stage Manager's thumbnails stay sharp through holes in the main overlay.
       var holes: [CGRect] = []
       if !settings.blursStageManager {
-        holes = snapshot.stripRects.filter { displayBounds.intersects($0) }.map { rect in
+        // While a window flies into or out of the strip, Stage Manager draws it in a
+        // window of its own at full size. That one is left blurred; thumbnails are small.
+        holes = snapshot.stripRects.filter {
+          displayBounds.intersects($0)
+            && $0.width <= displayBounds.width * 0.3 && $0.height <= displayBounds.height * 0.45
+        }.map { rect in
           // Window bounds have a top-left origin; layers have a bottom-left one.
           CGRect(
             x: rect.minX - displayBounds.minX,
@@ -204,6 +214,9 @@ final class FocusEngine {
       }
       panel.reveal(settings.revealEffect, duration: duration)
     }
+    if !settings.blursStageManager {
+      followStrip(snapshot.stripRects)
+    }
 
     if !isActive || focusedWindowID != focused.id {
       Log.info(.engine, "focus \(frontAppName ?? "?") window \(focused.id) (\(reason)), sharp apps \(sharpPIDs.count)")
@@ -216,6 +229,30 @@ final class FocusEngine {
       isActive = true
       onActiveChange?(true)
     }
+  }
+
+  /// Stage Manager slides its strip for about two thirds of a second after the last
+  /// window-server event, and sends nothing when it stops. While the strip's windows
+  /// keep moving, look again every other frame so the holes follow the thumbnails,
+  /// then go quiet once three looks in a row find them still.
+  private func followStrip(_ rects: [CGRect]) {
+    defer { lastStripRects = rects }
+    if rects != lastStripRects {
+      stripQuietChecks = 0
+      if stripFollowStart == nil {
+        stripFollowStart = Date()
+      }
+    } else {
+      stripQuietChecks += 1
+    }
+    guard let start = stripFollowStart, stripQuietChecks < 3, Date().timeIntervalSince(start) < 2 else {
+      stripFollowStart = nil
+      return
+    }
+    stripFollowUp?.cancel()
+    let item = DispatchWorkItem { [weak self] in self?.evaluate(reason: "strip") }
+    stripFollowUp = item
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 30, execute: item)
   }
 
   /// Apps whose every window stays sharp: the front app when app-wide focus is on,

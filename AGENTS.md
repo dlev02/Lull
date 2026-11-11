@@ -46,7 +46,7 @@ A copy run from outside an Applications folder never starts the updater or regis
 ## Performance
 
 - Idle means idle. Work happens on a focus change, a setting change or a command. `evaluations` in `diagnostics` stays flat while no window opens, closes or changes order.
-- The one repeating timer is the modifier check in `PointerGestures`, alive only during a peek. Pointer monitors exist only while a gesture is on.
+- The one repeating timer is the modifier check in `PointerGestures`, alive only during a peek. Pointer monitors exist only while a gesture is on. The other short-lived loop is `FocusEngine.followStrip`, which re-reads the window list every other frame only while Stage Manager's strip is sliding (it sends no event when it stops) and ends after three still reads or two seconds.
 - The window server does the blurring. Lull captures no screen content and draws no frames; build effects from layer properties and Core Animation.
 - The blur samples at quarter resolution (`scale` 0.25, or 0.5 below a radius of 6). Measure with `lull tune scale` before changing it.
 
