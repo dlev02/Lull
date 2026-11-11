@@ -1,0 +1,53 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Lull</title>
+        <item>
+            <title>0.1.0</title>
+            <pubDate>Tue, 10 Nov 2026 19:38:08 -0600</pubDate>
+            <link>https://github.com/dlev02/Lull/releases/tag/v0.1.0</link>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[
+The first version of Lull. It blurs everything on screen except the window you are working in.
+
+### Focus
+
+- Lull follows the window in front, whether you switch with the pointer or the keyboard.
+- App-wide focus keeps every window of the app in front sharp.
+- App groups keep chosen apps sharp together.
+- Ignored apps make Lull stand down while they are in front. Finder is ignored to begin with.
+- With more than one display, choose one focus across all of them or one per screen.
+- Stage Manager's thumbnails stay sharp, unless you turn on Blur Stage Manager.
+
+### Look
+
+- Two modes: Ambient keeps the top of the screen clear and fades to full blur about halfway down; Deep blurs everything.
+- Sliders for blur, tint and grain, with a tint colour of your choice.
+- Monochrome drains the colour from everything that is blurred.
+- Set how fast the blur arrives, and how: Fade, Focus or Pointer.
+
+### Control
+
+- A panel opens from the menu bar icon.
+- Shake the pointer to turn Lull on or off. Hold Shift and shake to peek at everything.
+- Peek at corners, if you turn it on, shows everything while the pointer rests in a screen corner.
+- Four keyboard shortcuts: Control-Option-Command with F to toggle Lull, M to switch mode, E to ignore the app in front and C to open the panel. Each can be changed or removed.
+- Auto-hide tucks away the Dock, the menu bar or both while Lull is focusing.
+- The `lull` command and `lull://` links control everything from scripts. Install the command from Scripting Commands in the panel.
+
+### Good to know
+
+- Lull needs macOS 26 or later.
+- It needs no permissions for normal use. Only Auto-hide asks for Automation, and only when you turn it on.
+- Lull starts at login, checks for updates once a day and installs an update the next time it quits. Both can be turned off in the panel.
+]]></description>
+            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.0/Lull-0.1.0.zip" length="2653015" type="application/octet-stream" sparkle:edSignature="U58UwzxBCnTIHaQhRftAwDEyZGjF1hq9xRwi8idvccmpwgDEbNSIzCujL6k+pJe9mt9dx+5WjHawUKbrzWW6Aw=="></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: 4v5KXbV4vb7GlFWra/N/x7Kx/JlJ9oHg3ozXgUmzQlDVibbkhu8TmAc1gzcvp96ggB3ungeIsohHWQEIQ/BcCA==
+length: 3004
+-->
