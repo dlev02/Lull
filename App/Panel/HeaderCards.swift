@@ -6,8 +6,9 @@ struct IntroCard: View {
 
   var body: some View {
     PanelCard(isTinted: true) {
-      Image(systemName: "circle.inset.filled")
-        .font(.largeTitle)
+      Image(nsImage: NSApp.applicationIconImage)
+        .resizable()
+        .frame(width: 64, height: 64)
         .frame(maxWidth: .infinity)
         .accessibilityHidden(true)
       Text("A quieter screen")

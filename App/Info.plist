@@ -43,6 +43,24 @@
 	<string>© 2026 Drew Levinson</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/dlev02/Lull/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>5ecGF2hZhXmxqBOawRdkJNLIpOI0aV7yKEsjfZeFl5Q=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SUSignedFeedFailureExpirationInterval</key>
+	<real>0</real>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

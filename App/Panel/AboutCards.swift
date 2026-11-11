@@ -16,11 +16,42 @@ struct AboutCard: View {
 
   var body: some View {
     PanelCard {
-      HStack(alignment: .firstTextBaseline, spacing: 6) {
-        Text(AppInfo.name)
-          .font(.headline)
-        Text(AppInfo.version)
-          .foregroundStyle(.secondary)
+      HStack(alignment: .center, spacing: 6) {
+        VStack(alignment: .leading, spacing: 2) {
+          HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(AppInfo.name)
+              .font(.headline)
+            Text(AppInfo.version)
+              .foregroundStyle(.secondary)
+          }
+          if let lastCheck = model.updates.lastCheck {
+            Text("Update checked: \(lastCheck, format: .relative(presentation: .named))")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+        Spacer()
+        if model.updates.isUpdateReady {
+          Button("Relaunch to Update") {
+            model.updates.relaunchToUpdate()
+          }
+          .buttonStyle(.glassProminent)
+          .buttonBorderShape(.capsule)
+        } else if model.updates.isAvailable {
+          Button("Check Updates") {
+            model.updates.checkNow()
+          }
+          .buttonStyle(.glass)
+          .buttonBorderShape(.capsule)
+          .disabled(!model.updates.canCheck)
+        }
+      }
+      if model.updates.isAvailable {
+        ToggleRow(title: "Automatic updates", isOn: Binding {
+          model.updates.checksAutomatically
+        } set: { enabled in
+          model.updates.checksAutomatically = enabled
+        })
       }
       Divider()
       ToggleRow(title: "Launch at login", isOn: Binding {

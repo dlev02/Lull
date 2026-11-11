@@ -11,7 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     self?.perform(action)
   }
   private lazy var autoHider = AutoHider(settings: settings)
-  private lazy var model = AppModel(settings: settings, engine: engine, hotKeys: hotKeys)
+  private let updates = UpdateController()
+  private lazy var model = AppModel(settings: settings, engine: engine, hotKeys: hotKeys, updates: updates)
   private lazy var panel = PanelController(model: model)
   private lazy var statusItem = StatusItemController(model: model, panel: panel) {
     NSApp.terminate(nil)
@@ -68,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusItem.update()
     server.start()
     LoginItem.enableByDefault()
+    updates.start()
 
     if !settings.hasSeenIntro {
       // First launch: open the panel so the intro is the first thing seen.

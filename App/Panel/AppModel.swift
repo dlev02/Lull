@@ -7,6 +7,7 @@ final class AppModel {
   let settings: LullSettings
   let engine: FocusEngine
   let hotKeys: HotKeys
+  let updates: UpdateController
 
   var isIntroVisible: Bool
   var launchesAtLogin = LoginItem.isEnabled
@@ -17,10 +18,11 @@ final class AppModel {
   /// ignored, about or footer.
   var scrollTarget: String?
 
-  init(settings: LullSettings, engine: FocusEngine, hotKeys: HotKeys) {
+  init(settings: LullSettings, engine: FocusEngine, hotKeys: HotKeys, updates: UpdateController) {
     self.settings = settings
     self.engine = engine
     self.hotKeys = hotKeys
+    self.updates = updates
     isIntroVisible = !settings.hasSeenIntro
   }
 
