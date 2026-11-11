@@ -134,6 +134,9 @@ final class FocusEngine {
 
     let snapshot = WindowSnapshot.capture(ownPID: ownPID)
     windowEvents.watch(snapshot.candidates.map(\.id))
+    // Before any early return: a window picked from the strip grows out of it only
+    // after the events that announced it, and may not count as a window until then.
+    followStrip(snapshot.stripRects)
     // An app with no ordinary window can come to the front: a launcher, a menu bar
     // panel. The window that was in focus stays in focus behind it.
     let frontWindow = snapshot.candidates.first(where: { $0.pid == frontPID })
@@ -214,9 +217,6 @@ final class FocusEngine {
       }
       panel.reveal(settings.revealEffect, duration: duration)
     }
-    if !settings.blursStageManager {
-      followStrip(snapshot.stripRects)
-    }
 
     if !isActive || focusedWindowID != focused.id {
       Log.info(.engine, "focus \(frontAppName ?? "?") window \(focused.id) (\(reason)), sharp apps \(sharpPIDs.count)")
@@ -233,8 +233,9 @@ final class FocusEngine {
 
   /// Stage Manager slides its strip for about two thirds of a second after the last
   /// window-server event, and sends nothing when it stops. While the strip's windows
-  /// keep moving, look again every other frame so the holes follow the thumbnails,
-  /// then go quiet once three looks in a row find them still.
+  /// keep moving, look again every other frame so the holes follow the thumbnails and
+  /// a window growing out of the strip is found, then go quiet once three looks in a
+  /// row find them still.
   private func followStrip(_ rects: [CGRect]) {
     defer { lastStripRects = rects }
     if rects != lastStripRects {

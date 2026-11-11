@@ -177,46 +177,43 @@ final class OverlayPanel: NSPanel {
     holes = newHoles
   }
 
-  /// How far the clear area reaches past a thumbnail, and how soft its edge is. A hard
-  /// edge reads as a box, because the blur outside it carries the thumbnail's own
-  /// smudge while the wallpaper inside does not.
-  private static let holeMargin: CGFloat = 6
-  private static let holeSoftness: CGFloat = 8
+  /// How far the clear area reaches past the strip, and how soft its edge is.
+  private static let holeMargin: CGFloat = 16
+  private static let holeSoftness: CGFloat = 16
 
+  /// One clear area around the whole strip rather than one per thumbnail. The blur
+  /// outside it carries a dark smudge of the thumbnails beneath it while the wallpaper
+  /// inside does not, so every gap between separate holes, and every hard edge, read
+  /// as a box.
   private func makeHoleMask(_ holes: [CGRect], in bounds: CGRect) -> CALayer? {
-    guard !holes.isEmpty else { return nil }
-    // Holes overlap (a thumbnail and its app icon), so merge them into one outline.
+    guard let first = holes.first else { return nil }
+    let strip = holes.dropFirst().reduce(first) { $0.union($1) }
     func outline(grownBy margin: CGFloat) -> CGPath {
-      holes.reduce(CGPath(rect: .zero, transform: nil)) { outline, hole in
-        let rect = hole.insetBy(dx: -margin, dy: -margin)
-        let corner = min(10, hole.width / 2, hole.height / 2) + margin
-        return outline.union(CGPath(roundedRect: rect, cornerWidth: corner, cornerHeight: corner, transform: nil))
-      }
+      let corner = min(12, strip.width / 2, strip.height / 2) + margin
+      return CGPath(
+        roundedRect: strip.insetBy(dx: -margin, dy: -margin), cornerWidth: corner, cornerHeight: corner, transform: nil
+      )
     }
+    let soft = OverlayPanel.holeSoftness
     let mask = CAShapeLayer()
     mask.frame = bounds
+    mask.shadowColor = .black
+    mask.shadowOpacity = 1
+    mask.shadowOffset = .zero
+    mask.shadowRadius = soft
+    let path: CGPath
     if placement == .beneathFocus {
-      // The overlay itself, with its shadow spilling softly into each hole.
-      let margin = OverlayPanel.holeMargin
-      let path = CGPath(rect: bounds.insetBy(dx: -4 * margin, dy: -4 * margin), transform: nil)
-        .subtracting(outline(grownBy: margin))
-      mask.path = path
-      mask.shadowPath = path
-      mask.shadowColor = .black
-      mask.shadowOpacity = 1
-      mask.shadowOffset = .zero
-      mask.shadowRadius = OverlayPanel.holeSoftness
+      // The overlay itself, with its shadow spilling softly into the hole.
+      path = CGPath(rect: bounds.insetBy(dx: -8 * soft, dy: -8 * soft), transform: nil)
+        .subtracting(outline(grownBy: OverlayPanel.holeMargin))
     } else {
-      // Solid wherever the other overlay thins, then fading out beneath it, so the
-      // other overlay's blur never meets an edge in what it samples.
-      let path = outline(grownBy: OverlayPanel.holeMargin)
-      mask.path = path
-      mask.shadowPath = path
-      mask.shadowColor = .black
-      mask.shadowOpacity = 1
-      mask.shadowOffset = .zero
-      mask.shadowRadius = 4 * OverlayPanel.holeSoftness
+      // Solid wherever the other overlay thins, then fading out just beyond it. Any
+      // further and the other overlay, which samples this one, shows its grain and
+      // saturation twice.
+      path = outline(grownBy: OverlayPanel.holeMargin + soft)
     }
+    mask.path = path
+    mask.shadowPath = path
     return mask
   }
 
