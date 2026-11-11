@@ -12,6 +12,9 @@ final class PanelController {
   private var outsideMonitor: Any?
   private var keyMonitor: Any?
   private(set) var isVisible = false
+  /// Where the menu bar icon is on screen, so a click on it isn't also treated as a
+  /// click outside the panel.
+  var statusItemFrame: (() -> NSRect?)?
 
   init(model: AppModel) {
     self.model = model
@@ -44,7 +47,13 @@ final class PanelController {
 
     // A click anywhere outside the panel closes it, like Control Centre.
     outsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-      self?.hide()
+      guard let self else { return }
+      // The menu bar icon closes the panel itself; closing here too would let its
+      // click open the panel straight back up.
+      if let frame = self.statusItemFrame?(), frame.insetBy(dx: -4, dy: -4).contains(NSEvent.mouseLocation) {
+        return
+      }
+      self.hide()
     }
     keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
       self?.handleKey(event) ?? event

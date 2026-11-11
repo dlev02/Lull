@@ -61,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       return LoginItem.isEnabled
     }
 
+    panel.statusItemFrame = { [weak self] in self?.statusItem.frame }
     engine.start()
     hotKeys.start()
     gestures.update()

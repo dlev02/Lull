@@ -222,7 +222,9 @@ private struct PanelButtonBody: View {
     if isOnTint {
       return AnyShapeStyle(Color.white.opacity(isLit ? 0.3 : 0.18))
     }
-    return isLit ? AnyShapeStyle(.fill.secondary) : AnyShapeStyle(.fill.tertiary)
+    // A plain translucent colour. The system fill styles flash black for a frame
+    // while the panel fades in or out.
+    return AnyShapeStyle(Color.primary.opacity(isLit ? 0.2 : 0.1))
   }
 }
 
@@ -286,7 +288,7 @@ struct KeyCap: View {
       .font(.callout.weight(.medium))
       .frame(minWidth: 30, minHeight: 30)
       .padding(.horizontal, text.count > 1 ? 8 : 0)
-      .background(.fill.tertiary, in: .capsule)
+      .background(Color.primary.opacity(0.1), in: .capsule)
   }
 }
 

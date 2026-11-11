@@ -4,7 +4,7 @@ import Foundation
 enum AppInfo {
   static let name = "Lull"
   static let author = "Drew Levinson"
-  static let authorURL = URL(string: "https://github.com/dlev02")!
+  static let authorURL = URL(string: "https://drewlevinson.me")!
   static let repositoryURL = URL(string: "https://github.com/dlev02/Lull")!
   static let privacyURL = URL(string: "https://github.com/dlev02/Lull/blob/main/PRIVACY.md")!
 

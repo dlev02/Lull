@@ -18,6 +18,12 @@ final class StatusItemController: NSObject {
     item?.button?.window?.screen
   }
 
+  /// The icon's frame in screen coordinates.
+  var frame: NSRect? {
+    guard let button = item?.button, let window = button.window else { return nil }
+    return window.convertToScreen(button.convert(button.bounds, to: nil))
+  }
+
   /// Creates, removes or redraws the icon to match the settings.
   func update() {
     if model.settings.menuBarClick == .hidden {

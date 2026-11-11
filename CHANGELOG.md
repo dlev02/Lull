@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-11-10
+
+- Clicking the menu bar icon while the panel is open now closes it, instead of opening it again.
+- Buttons and shortcut keys in the panel no longer flash dark as the panel opens and closes.
+- The "Made by" link goes to drewlevinson.me.
+
 ## 0.1.1 — 2026-11-10
 
 A polish pass on the panel.
