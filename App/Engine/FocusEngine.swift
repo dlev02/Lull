@@ -19,6 +19,9 @@ final class FocusEngine {
   private(set) var frontBundleID: String?
   private(set) var focusedWindowID: CGWindowID?
 
+  /// Called when the overlays go up or come down.
+  @ObservationIgnored var onActiveChange: ((Bool) -> Void)?
+
   /// Held by the peek gesture and `lull peek on`: everything is sharp until released.
   var isPeeking = false {
     didSet {
@@ -126,7 +129,11 @@ final class FocusEngine {
 
     let snapshot = WindowSnapshot.capture(ownPID: ownPID)
     windowEvents.watch(snapshot.candidates.map(\.id))
-    guard let focused = snapshot.candidates.first(where: { $0.pid == frontPID }) else {
+    // An app with no ordinary window can come to the front: a launcher, a menu bar
+    // panel. The window that was in focus stays in focus behind it.
+    let frontWindow = snapshot.candidates.first(where: { $0.pid == frontPID })
+      ?? snapshot.candidates.first(where: { $0.id == focusedWindowID })
+    guard let focused = frontWindow else {
       // A closing app is briefly frontmost with no windows before the next one takes
       // over. Wait a moment before standing down, so the blur does not flash off.
       if isActive, reason != "confirm-no-window" {
@@ -142,7 +149,7 @@ final class FocusEngine {
       return hideAll(.noWindow, reason: reason)
     }
 
-    let sharpPIDs = sharpProcessIDs(frontPID: frontPID)
+    let sharpPIDs = sharpProcessIDs(frontPID: focused.pid)
     func isSharp(_ window: WindowInfo) -> Bool {
       window.id == focused.id || sharpPIDs.contains(window.pid)
     }
@@ -182,20 +189,20 @@ final class FocusEngine {
       panel.apply(look, holes: holes, animated: animateLook, duration: duration)
       if let desktopPanel = desktopPanels[displayID] {
         if holes.isEmpty {
-          desktopPanel.fadeOut(duration: duration)
+          desktopPanel.conceal(settings.revealEffect, duration: duration)
         } else {
           desktopPanel.apply(look, holes: holes, animated: animateLook, duration: duration)
           if !desktopPanel.isVisible {
             desktopPanel.orderFrontRegardless()
           }
-          desktopPanel.fadeIn(duration: duration)
+          desktopPanel.reveal(settings.revealEffect, duration: duration)
         }
       }
 
       if !isSlotted(panel, beneath: anchor, in: snapshot) {
         panel.slot(beneath: anchor?.id)
       }
-      panel.fadeIn(duration: duration)
+      panel.reveal(settings.revealEffect, duration: duration)
     }
 
     if !isActive || focusedWindowID != focused.id {
@@ -205,7 +212,10 @@ final class FocusEngine {
     lastMode = settings.mode
     focusedWindowID = focused.id
     standDown = nil
-    isActive = true
+    if !isActive {
+      isActive = true
+      onActiveChange?(true)
+    }
   }
 
   /// Apps whose every window stays sharp: the front app when app-wide focus is on,
@@ -215,8 +225,8 @@ final class FocusEngine {
     if settings.isAppWideFocus {
       pids.insert(frontPID)
     }
-    if let frontBundleID {
-      let partners = Set(settings.groups.filter { $0.contains(frontBundleID) }.flatMap { $0 })
+    if let bundleID = NSRunningApplication(processIdentifier: frontPID)?.bundleIdentifier {
+      let partners = Set(settings.groups.filter { $0.contains(bundleID) }.flatMap { $0 })
       if !partners.isEmpty {
         for app in NSWorkspace.shared.runningApplications {
           if let bundleID = app.bundleIdentifier, partners.contains(bundleID) {
@@ -248,10 +258,13 @@ final class FocusEngine {
       Log.info(.engine, "stand down: \(why.rawValue) (\(reason))")
     }
     for panel in Array(overlays.values) + Array(desktopPanels.values) {
-      panel.fadeOut(duration: settings.transitionDuration)
+      panel.conceal(settings.revealEffect, duration: settings.transitionDuration)
     }
     standDown = why
-    isActive = false
+    if isActive {
+      isActive = false
+      onActiveChange?(false)
+    }
     focusedWindowID = nil
   }
 

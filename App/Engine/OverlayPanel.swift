@@ -212,27 +212,92 @@ final class OverlayPanel: NSPanel {
     }
   }
 
-  func fadeIn(duration: TimeInterval) {
+  /// Brings the overlay in. Fade raises its opacity; Focus also pulls the blur up
+  /// from nothing, like a lens; Pointer spreads it outward from the pointer.
+  func reveal(_ effect: RevealEffect, duration: TimeInterval) {
     guard !isShown else { return }
     isShown = true
-    NSAnimationContext.runAnimationGroup { context in
-      context.duration = duration
-      context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-      animator().alphaValue = 1
+    switch effect {
+    case .fade:
+      animateAlpha(to: 1, duration: duration)
+    case .focus:
+      animateAlpha(to: 1, duration: min(duration, 0.15))
+      animateRadius(from: 0, to: look.blurRadius, duration: duration)
+    case .pointer:
+      alphaValue = 1
+      animateCircle(opening: true, duration: max(duration, 0.2))
     }
   }
 
-  func fadeOut(duration: TimeInterval) {
+  func conceal(_ effect: RevealEffect, duration: TimeInterval) {
     guard isShown else { return }
     isShown = false
+    switch effect {
+    case .fade:
+      animateAlpha(to: 0, duration: duration, thenOrderOut: true)
+    case .focus:
+      animateRadius(from: look.blurRadius, to: 0, duration: duration)
+      animateAlpha(to: 0, duration: duration, thenOrderOut: true)
+    case .pointer:
+      animateCircle(opening: false, duration: max(duration, 0.2))
+      DispatchQueue.main.asyncAfter(deadline: .now() + max(duration, 0.2)) { [weak self] in
+        guard let self, !self.isShown else { return }
+        self.alphaValue = 0
+        self.root.mask = nil
+        self.orderOut(nil)
+      }
+    }
+  }
+
+  private func animateAlpha(to value: CGFloat, duration: TimeInterval, thenOrderOut: Bool = false) {
     NSAnimationContext.runAnimationGroup { context in
       context.duration = duration
-      context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-      animator().alphaValue = 0
+      context.timingFunction = CAMediaTimingFunction(name: value > 0 ? .easeOut : .easeIn)
+      animator().alphaValue = value
     } completionHandler: { [weak self] in
       MainActor.assumeIsolated {
-        guard let self, !self.isShown else { return }
+        guard thenOrderOut, let self, !self.isShown else { return }
         self.orderOut(nil)
+      }
+    }
+  }
+
+  private func animateRadius(from start: Double, to end: Double, duration: TimeInterval) {
+    guard let backdrop else { return }
+    let animation = CABasicAnimation(keyPath: "filters.gaussianBlur.inputRadius")
+    animation.fromValue = start
+    animation.toValue = end
+    animation.duration = duration
+    animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+    backdrop.add(animation, forKey: "revealRadius")
+  }
+
+  /// A circle centred on the pointer that grows to cover the display, or shrinks back.
+  private func animateCircle(opening: Bool, duration: TimeInterval) {
+    let bounds = CGRect(origin: .zero, size: frame.size)
+    let pointer = NSEvent.mouseLocation
+    var centre = CGPoint(x: pointer.x - frame.minX, y: pointer.y - frame.minY)
+    if !bounds.contains(centre) {
+      centre = CGPoint(x: bounds.midX, y: bounds.midY)
+    }
+    let reach = hypot(max(centre.x, bounds.width - centre.x), max(centre.y, bounds.height - centre.y)) + 40
+    func circle(_ radius: CGFloat) -> CGPath {
+      CGPath(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2), transform: nil)
+    }
+    let mask = CAShapeLayer()
+    mask.frame = bounds
+    mask.path = circle(opening ? reach : 1)
+    root.mask = mask
+    let animation = CABasicAnimation(keyPath: "path")
+    animation.fromValue = circle(opening ? 1 : reach)
+    animation.toValue = circle(opening ? reach : 1)
+    animation.duration = duration
+    animation.timingFunction = CAMediaTimingFunction(name: opening ? .easeOut : .easeIn)
+    mask.add(animation, forKey: "reveal")
+    if opening {
+      DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+        guard let self, self.isShown else { return }
+        self.root.mask = nil
       }
     }
   }

@@ -10,12 +10,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var hotKeys = HotKeys { [weak self] action in
     self?.perform(action)
   }
+  private lazy var autoHider = AutoHider(settings: settings)
   private lazy var model = AppModel(settings: settings, engine: engine, hotKeys: hotKeys)
   private lazy var panel = PanelController(model: model)
   private lazy var statusItem = StatusItemController(model: model, panel: panel) {
     NSApp.terminate(nil)
   }
-  private lazy var shake = ShakeDetector(settings: settings) { [weak self] gesture in
+  private lazy var gestures = PointerGestures(settings: settings) { [weak self] gesture in
     guard let self else { return }
     switch gesture {
     case .toggle: self.engine.toggle()
@@ -32,7 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       guard let self else { return }
       self.engine.settingsChanged()
       self.statusItem.update()
-      self.shake.update()
+      self.gestures.update()
+      self.autoHider.update(isActive: self.engine.isActive)
     }
     router.quitAction = { NSApp.terminate(nil) }
     router.panelAction = { [weak self] verb in
@@ -58,7 +60,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     engine.start()
     hotKeys.start()
-    shake.update()
+    gestures.update()
+    autoHider.recoverIfNeeded()
+    engine.onActiveChange = { [weak self] isActive in
+      self?.autoHider.update(isActive: isActive)
+    }
     statusItem.update()
     server.start()
     LoginItem.enableByDefault()
@@ -73,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    autoHider.restoreNow()
     server.stop()
   }
 

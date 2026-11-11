@@ -37,6 +37,10 @@
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Lull uses System Events to hide the Dock or menu bar while it is focusing, when you turn Auto-hide on.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Drew Levinson</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSPrincipalClass</key>

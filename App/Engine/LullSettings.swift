@@ -39,6 +39,36 @@ enum MenuBarClick: String, CaseIterable {
   }
 }
 
+/// How the blur arrives and leaves.
+enum RevealEffect: String, CaseIterable {
+  case fade, focus, pointer
+
+  var title: String {
+    switch self {
+    case .fade: "Fade"
+    case .focus: "Focus"
+    case .pointer: "Pointer"
+    }
+  }
+}
+
+/// What to tuck away while Lull is focusing.
+enum AutoHide: String, CaseIterable {
+  case off, dock, menuBar = "menu-bar", both
+
+  var title: String {
+    switch self {
+    case .off: "Off"
+    case .dock: "Dock"
+    case .menuBar: "Menu bar"
+    case .both: "Both"
+    }
+  }
+
+  var hidesDock: Bool { self == .dock || self == .both }
+  var hidesMenuBar: Bool { self == .menuBar || self == .both }
+}
+
 enum GestureModifier: String, CaseIterable {
   case none, control, option, shift, command
 
@@ -62,6 +92,7 @@ final class LullSettings {
     case isAppWideFocus, screenMode, blursStageManager, menuBarClick
     case isShakeEnabled, shakeToggleModifier, shakePeekModifier, shakeSensitivity
     case ignoredBundleIDs, groups, hasSeenIntro
+    case revealEffect, autoHide, peeksAtCorners
   }
 
   static let defaultIgnored = ["com.apple.finder"]
@@ -95,6 +126,9 @@ final class LullSettings {
   /// Each group is a list of bundle identifiers that stay in focus together.
   var groups: [[String]] { didSet { store(groups, .groups) } }
   var hasSeenIntro: Bool { didSet { store(hasSeenIntro, .hasSeenIntro) } }
+  var revealEffect: RevealEffect { didSet { store(revealEffect.rawValue, .revealEffect) } }
+  var autoHide: AutoHide { didSet { store(autoHide.rawValue, .autoHide) } }
+  var peeksAtCorners: Bool { didSet { store(peeksAtCorners, .peeksAtCorners) } }
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
@@ -123,6 +157,9 @@ final class LullSettings {
     ignoredBundleIDs = value(.ignoredBundleIDs, LullSettings.defaultIgnored)
     groups = value(.groups, [[String]]())
     hasSeenIntro = value(.hasSeenIntro, false)
+    revealEffect = RevealEffect(rawValue: value(.revealEffect, "")) ?? .fade
+    autoHide = AutoHide(rawValue: value(.autoHide, "")) ?? .off
+    peeksAtCorners = value(.peeksAtCorners, false)
   }
 
   /// Seconds the fade in and out takes.
@@ -154,6 +191,9 @@ final class LullSettings {
     ignoredBundleIDs = fresh.ignoredBundleIDs
     groups = fresh.groups
     hasSeenIntro = fresh.hasSeenIntro
+    revealEffect = fresh.revealEffect
+    autoHide = fresh.autoHide
+    peeksAtCorners = fresh.peeksAtCorners
     onChange = handler
     handler?()
   }

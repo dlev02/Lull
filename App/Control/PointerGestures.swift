@@ -1,8 +1,9 @@
 import AppKit
 
-/// Recognises a quick side-to-side shake of the pointer. Watching pointer movement
-/// needs no permission; the monitor only exists while shake gestures are on.
-final class ShakeDetector {
+/// Recognises a quick side-to-side shake of the pointer, and the pointer resting in
+/// a screen corner. Watching pointer movement needs no permission; the monitor only
+/// exists while one of the gestures is on.
+final class PointerGestures {
   enum Gesture {
     case toggle
     case peekBegan
@@ -22,6 +23,7 @@ final class ShakeDetector {
   private var lastTrigger: TimeInterval = 0
   private var peekTimer: Timer?
   private var peekModifier: NSEvent.ModifierFlags = []
+  private var isInCorner = false
 
   init(settings: LullSettings, handler: @escaping (Gesture) -> Void) {
     self.settings = settings
@@ -30,7 +32,8 @@ final class ShakeDetector {
 
   /// Installs or removes the monitors to match the setting.
   func update() {
-    if settings.isShakeEnabled, globalMonitor == nil {
+    let isNeeded = settings.isShakeEnabled || settings.peeksAtCorners
+    if isNeeded, globalMonitor == nil {
       // Keep strong references: a monitor that is not retained stops silently.
       globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
         // Events for other apps carry screen coordinates.
@@ -41,8 +44,8 @@ final class ShakeDetector {
         self?.moved(to: x, at: event.timestamp, holding: event.modifierFlags)
         return event
       }
-      Log.info(.gesture, "shake detection on")
-    } else if !settings.isShakeEnabled, let monitor = globalMonitor {
+      Log.info(.gesture, "pointer gestures on")
+    } else if !isNeeded, let monitor = globalMonitor {
       NSEvent.removeMonitor(monitor)
       if let localMonitor {
         NSEvent.removeMonitor(localMonitor)
@@ -50,11 +53,35 @@ final class ShakeDetector {
       globalMonitor = nil
       localMonitor = nil
       endPeek()
-      Log.info(.gesture, "shake detection off")
+      Log.info(.gesture, "pointer gestures off")
+    }
+    if !settings.peeksAtCorners, isInCorner {
+      isInCorner = false
+      handler(.peekEnded)
     }
   }
 
+  /// Peeks while the pointer rests in any corner of any display.
+  private func checkCorners() {
+    let point = NSEvent.mouseLocation
+    let reach: CGFloat = 5
+    let inCorner = NSScreen.screens.contains { screen in
+      let frame = screen.frame
+      let nearX = point.x <= frame.minX + reach || point.x >= frame.maxX - reach
+      let nearY = point.y <= frame.minY + reach || point.y >= frame.maxY - reach
+      return frame.insetBy(dx: -1, dy: -1).contains(point) && nearX && nearY
+    }
+    guard inCorner != isInCorner else { return }
+    isInCorner = inCorner
+    Log.info(.gesture, inCorner ? "corner: peek" : "corner: left")
+    handler(inCorner ? .peekBegan : .peekEnded)
+  }
+
   private func moved(to x: CGFloat, at time: TimeInterval, holding flags: NSEvent.ModifierFlags) {
+    if settings.peeksAtCorners {
+      checkCorners()
+    }
+    guard settings.isShakeEnabled else { return }
     let delta = x - lastX
     lastX = x
     guard abs(delta) >= 1 else { return }

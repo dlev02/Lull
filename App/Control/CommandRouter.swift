@@ -29,6 +29,9 @@ final class CommandRouter {
     app-wide [on|off|toggle]      keep every window of the front app sharp
     screens [global|per-screen]
     stage-blur [on|off|toggle]    cover Stage Manager's strip
+    reveal [fade|focus|pointer]   how the blur arrives
+    auto-hide [off|dock|menu-bar|both]
+    corner-peek [on|off|toggle]   peek while the pointer is in a corner
     ignore [list|add|remove|toggle] [app]
     group [list|add|remove] [app app… | index]
     peek [on|off]                 show everything until turned off
@@ -108,6 +111,22 @@ final class CommandRouter {
         settings.screenMode = mode
       }
 
+    case "corner-peek": settings.peeksAtCorners = try flag(value, current: settings.peeksAtCorners)
+    case "reveal":
+      if let value {
+        guard let effect = RevealEffect(rawValue: value.lowercased()) else {
+          throw Failure(message: "reveal is fade, focus or pointer")
+        }
+        settings.revealEffect = effect
+      }
+    case "auto-hide":
+      if let value {
+        guard let choice = AutoHide(rawValue: value.lowercased()) else {
+          throw Failure(message: "auto-hide is off, dock, menu-bar or both")
+        }
+        settings.autoHide = choice
+      }
+
     case "ignore": try ignore(values)
     case "group": try group(values)
 
@@ -163,6 +182,9 @@ final class CommandRouter {
       "shake": settings.isShakeEnabled,
       "sensitivity": percent(settings.shakeSensitivity),
       "peeking": engine.isPeeking,
+      "reveal": settings.revealEffect.rawValue,
+      "autoHide": settings.autoHide.rawValue,
+      "cornerPeek": settings.peeksAtCorners,
       "ignored": settings.ignoredBundleIDs,
       "groups": settings.groups,
     ]

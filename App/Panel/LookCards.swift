@@ -34,6 +34,17 @@ struct FinishCard: View {
         Image(systemName: "timer")
           .accessibilityHidden(true)
       }
+      PanelRow(symbol: "sparkles", title: "Reveal effect") {
+        Picker("Reveal effect", selection: $settings.revealEffect) {
+          ForEach(RevealEffect.allCases, id: \.self) { effect in
+            Text(effect.title).tag(effect)
+          }
+        }
+        .pickerStyle(.menu)
+        .buttonStyle(.borderless)
+        .labelsHidden()
+        .fixedSize()
+      }
     }
   }
 }

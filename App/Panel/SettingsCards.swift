@@ -19,6 +19,17 @@ struct FocusSettingsCard: View {
         .labelsHidden()
         .fixedSize()
       }
+      PanelRow(title: "Auto-hide", subtitle: "While Lull is focusing") {
+        Picker("Auto-hide", selection: $settings.autoHide) {
+          ForEach(AutoHide.allCases, id: \.self) { choice in
+            Text(choice.title).tag(choice)
+          }
+        }
+        .pickerStyle(.menu)
+        .buttonStyle(.borderless)
+        .labelsHidden()
+        .fixedSize()
+      }
       ToggleRow(title: "Blur Stage Manager", subtitle: "Cover the thumbnails too", isOn: $settings.blursStageManager)
       PanelRow(title: "Menu bar icon") {
         Picker("Menu bar icon", selection: $settings.menuBarClick) {
@@ -80,6 +91,8 @@ struct GesturesCard: View {
         }
       }
       .disabled(!settings.isShakeEnabled)
+      Divider()
+      ToggleRow(title: "Peek at corners", isOn: $settings.peeksAtCorners)
     }
   }
 }
