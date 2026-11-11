@@ -47,6 +47,17 @@ enum CommandClient {
     return (object["ok"] as? Bool) == true ? 0 : 1
   }
 
+  /// Sends one command to the running app without printing, for a second copy that
+  /// is handing a link on. Returns false if nothing is listening.
+  static func send(_ arguments: [String]) -> Bool {
+    guard let descriptor = CommandSocket.connect() else { return false }
+    defer { close(descriptor) }
+    CommandSocket.setTimeout(3, on: descriptor)
+    guard let request = try? JSONSerialization.data(withJSONObject: arguments) else { return false }
+    CommandSocket.write(request, to: descriptor)
+    return !CommandSocket.readLine(from: descriptor).isEmpty
+  }
+
   /// Starts the app this executable belongs to, in the background.
   private static func launchApp() {
     let executable = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()

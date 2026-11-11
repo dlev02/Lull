@@ -15,6 +15,7 @@ final class CommandRouter {
   var panelAction: ((String) -> Bool)?
   var loginItemAction: ((Bool?) -> Bool)?
   var quitAction: (() -> Void)?
+  var linkAction: ((URL) -> Void)?
 
   static let usage = """
   usage: lull <command> [value]
@@ -147,6 +148,12 @@ final class CommandRouter {
         engine.tuning[value] = number
       }
       return ["tuning": engine.tuning]
+    case "link":
+      // A link handed on by a second copy of the app.
+      guard let value, let url = URL(string: value), let linkAction else {
+        throw Failure(message: "link takes a lull:// address")
+      }
+      linkAction(url)
     case "windows": return windows()
     case "diagnostics": return diagnostics()
     case "log":
