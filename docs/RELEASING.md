@@ -22,6 +22,25 @@ A release is a Developer ID signed, notarized DMG and ZIP attached to a GitHub r
 
 Install the previous release, publish the new one, and watch the installed copy find it, download it and relaunch into the new version. Check `lull log` for the `[update]` lines. A release that can't update is worse than no release.
 
+### Testing an update without publishing it
+
+To prove a build can be updated to before it goes out, or when a firewall on the test Mac holds the download from GitHub, serve the update from the same Mac:
+
+```sh
+mkdir /tmp/feed && cp dist/release/<version>/Lull-<version>.zip /tmp/feed/
+dist/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast --account lull \
+  --download-url-prefix http://127.0.0.1:8765/ -o /tmp/feed/appcast.xml /tmp/feed
+(cd /tmp/feed && python3 -m http.server 8765 --bind 127.0.0.1) &
+lull quit
+defaults write io.github.dlev02.lull SUFeedURL http://127.0.0.1:8765/appcast.xml
+open -g /Applications/Lull.app
+lull update check      # then `lull update` until "ready" is true
+lull update install    # relaunches into the new version
+defaults delete io.github.dlev02.lull SUFeedURL
+```
+
+The update is still verified against the signing key, so this exercises everything except GitHub's hosting. If `lull log` shows "An error occurred while downloading the update" after exactly a minute, something on the Mac is holding the connection to `github.com` or `release-assets.githubusercontent.com`; a firewall app such as Little Snitch waits for an answer to its prompt.
+
 ## What the script needs on this Mac
 
 - The Developer ID Application certificate, in the login Keychain. The team is set at the top of the script, or with `LULL_TEAM`.
