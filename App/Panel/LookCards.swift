@@ -6,9 +6,10 @@ struct LookCard: View {
 
   var body: some View {
     @Bindable var settings = model.settings
-    PanelCard {
+    PanelCard(spacing: 16) {
       SliderRow(title: "Blur", value: $settings.blur) {
         Image(systemName: "drop.fill")
+          .font(.title3)
           .accessibilityHidden(true)
       }
       SliderRow(title: "Tint", value: $settings.tint) {
@@ -16,34 +17,30 @@ struct LookCard: View {
       }
       SliderRow(title: "Grain", value: $settings.grain) {
         Image(systemName: "water.waves")
+          .font(.title3)
           .accessibilityHidden(true)
       }
     }
   }
 }
 
-/// Monochrome and the speed of the fade.
+/// Monochrome, the speed of the fade, and how the blur arrives.
 struct FinishCard: View {
   @Environment(AppModel.self) private var model
 
   var body: some View {
     @Bindable var settings = model.settings
     PanelCard {
-      ToggleRow(symbol: "circle.lefthalf.filled", title: "Monochrome", isOn: $settings.isMonochrome)
-      SliderRow(title: "Transition", value: $settings.transition) {
+      ToggleRow(symbol: "camera.filters", title: "Monochrome", isOn: $settings.isMonochrome)
+      RowDivider()
+      SliderRow(title: "Transition", value: $settings.transition, steps: 5) {
         Image(systemName: "timer")
+          .font(.title3)
           .accessibilityHidden(true)
       }
-      PanelRow(symbol: "sparkles", title: "Reveal effect") {
-        Picker("Reveal effect", selection: $settings.revealEffect) {
-          ForEach(RevealEffect.allCases, id: \.self) { effect in
-            Text(effect.title).tag(effect)
-          }
-        }
-        .pickerStyle(.menu)
-        .buttonStyle(.borderless)
-        .labelsHidden()
-        .fixedSize()
+      RowDivider()
+      PanelRow(symbol: "wand.and.sparkles", title: "Reveal effect") {
+        RowPicker(title: "Reveal effect", selection: $settings.revealEffect, options: RevealEffect.allCases) { $0.title }
       }
     }
   }

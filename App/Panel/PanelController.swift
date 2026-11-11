@@ -15,6 +15,7 @@ final class PanelController {
 
   init(model: AppModel) {
     self.model = model
+    model.closePanel = { [weak self] in self?.hide() }
   }
 
   func toggle(on screen: NSScreen?) {
@@ -110,6 +111,10 @@ final class PanelController {
     panel.hidesOnDeactivate = false
     panel.isMovable = false
     panel.animationBehavior = .none
+    // Take every event over the panel's column, including the clear gaps between
+    // cards. Left automatic, scrolling over a gap went to the window underneath, which
+    // made the panel scroll in fits and starts.
+    panel.ignoresMouseEvents = false
     panel.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
     let host = NSHostingView(rootView: PanelView().environment(model))
     host.sizingOptions = []

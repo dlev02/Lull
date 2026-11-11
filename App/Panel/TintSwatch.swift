@@ -16,9 +16,9 @@ struct TintSwatch: View {
         .overlay {
           Circle()
             .fill(Color(nsColor: NSColor(hex: model.settings.tintColor) ?? .black))
-            .padding(4)
+            .padding(5)
         }
-        .frame(width: 22, height: 22)
+        .frame(width: 26, height: 26)
         .contentShape(.circle)
     }
     .buttonStyle(.plain)

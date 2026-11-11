@@ -21,6 +21,7 @@ struct AppGroupsCard: View {
       }
       ForEach(Array(model.settings.groups.enumerated()), id: \.offset) { index, group in
         let members = group.map(AppIdentity.lookup)
+        RowDivider()
         HStack(spacing: 10) {
           HStack(spacing: -6) {
             ForEach(members) { member in
@@ -30,11 +31,10 @@ struct AppGroupsCard: View {
           Text(members.map(\.name).joined(separator: " + "))
             .lineLimit(1)
           Spacer(minLength: 4)
-          SymbolButton(title: "Remove Group", symbol: "minus") {
+          RemoveButton(title: "Remove Group") {
             model.settings.groups.remove(at: index)
           }
         }
-        .accessibilityElement(children: .combine)
       }
     }
   }
@@ -63,17 +63,18 @@ struct IgnoredAppsCard: View {
         }
         .labelStyle(.iconOnly)
         .menuIndicator(.hidden)
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(PanelButtonStyle(shape: .circle))
         .fixedSize()
       }
       ForEach(model.settings.ignoredBundleIDs.map(AppIdentity.lookup)) { app in
-        HStack(spacing: 10) {
+        RowDivider()
+        HStack(spacing: 12) {
           AppIcon(identity: app)
           Text(app.name)
+            .font(.headline)
             .lineLimit(1)
           Spacer(minLength: 4)
-          SymbolButton(title: "Stop Ignoring \(app.name)", symbol: "minus") {
+          RemoveButton(title: "Stop Ignoring \(app.name)") {
             model.toggleIgnore(app.bundleID)
           }
         }

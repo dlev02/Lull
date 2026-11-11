@@ -8,39 +8,19 @@ struct FocusSettingsCard: View {
     @Bindable var settings = model.settings
     PanelCard {
       ToggleRow(title: "App-wide focus", subtitle: "Every window of the app in front", isOn: $settings.isAppWideFocus)
+      RowDivider()
       PanelRow(title: "Multi-screen mode") {
-        Picker("Multi-screen mode", selection: $settings.screenMode) {
-          ForEach(ScreenMode.allCases, id: \.self) { mode in
-            Text(mode.title).tag(mode)
-          }
-        }
-        .pickerStyle(.menu)
-        .buttonStyle(.borderless)
-        .labelsHidden()
-        .fixedSize()
+        RowPicker(title: "Multi-screen mode", selection: $settings.screenMode, options: ScreenMode.allCases) { $0.title }
       }
+      RowDivider()
       PanelRow(title: "Auto-hide", subtitle: "While Lull is focusing") {
-        Picker("Auto-hide", selection: $settings.autoHide) {
-          ForEach(AutoHide.allCases, id: \.self) { choice in
-            Text(choice.title).tag(choice)
-          }
-        }
-        .pickerStyle(.menu)
-        .buttonStyle(.borderless)
-        .labelsHidden()
-        .fixedSize()
+        RowPicker(title: "Auto-hide", selection: $settings.autoHide, options: AutoHide.allCases) { $0.title }
       }
+      RowDivider()
       ToggleRow(title: "Blur Stage Manager", subtitle: "Cover the thumbnails too", isOn: $settings.blursStageManager)
+      RowDivider()
       PanelRow(title: "Menu bar icon") {
-        Picker("Menu bar icon", selection: $settings.menuBarClick) {
-          ForEach(MenuBarClick.allCases, id: \.self) { choice in
-            Text(choice.title).tag(choice)
-          }
-        }
-        .pickerStyle(.menu)
-        .buttonStyle(.borderless)
-        .labelsHidden()
-        .fixedSize()
+        RowPicker(title: "Menu bar icon", selection: $settings.menuBarClick, options: MenuBarClick.allCases) { $0.title }
       }
     }
   }
@@ -51,47 +31,40 @@ struct GesturesCard: View {
 
   var body: some View {
     @Bindable var settings = model.settings
-    DisclosureCard(symbol: "cursorarrow.motionlines", title: "Gestures") {
+    DisclosureCard(symbol: "computermouse.fill", title: "Gestures") {
       ToggleRow(title: "Shake gestures", isOn: $settings.isShakeEnabled)
       Group {
         PanelRow(title: "Shake to toggle") {
-          Picker("Shake to toggle", selection: $settings.shakeToggleModifier) {
-            ForEach(GestureModifier.allCases.filter { $0 == .none || $0 != settings.shakePeekModifier }, id: \.self) { modifier in
-              Text(modifier.title).tag(modifier)
-            }
-          }
-          .pickerStyle(.menu)
-          .buttonStyle(.borderless)
-          .labelsHidden()
-          .fixedSize()
+          // A modifier can't do both jobs, so the one in use is left out of the other menu.
+          RowPicker(
+            title: "Shake to toggle",
+            selection: $settings.shakeToggleModifier,
+            options: GestureModifier.allCases.filter { $0 == .none || $0 != settings.shakePeekModifier }
+          ) { $0.title }
         }
         PanelRow(title: "Hold + shake to peek") {
-          Picker("Hold and shake to peek", selection: $settings.shakePeekModifier) {
-            ForEach(GestureModifier.allCases.filter { $0 == .none || $0 != settings.shakeToggleModifier }, id: \.self) { modifier in
-              Text(modifier == .none ? "Off" : modifier.title).tag(modifier)
-            }
-          }
-          .pickerStyle(.menu)
-          .buttonStyle(.borderless)
-          .labelsHidden()
-          .fixedSize()
+          RowPicker(
+            title: "Hold and shake to peek",
+            selection: $settings.shakePeekModifier,
+            options: GestureModifier.allCases.filter { $0 == .none || $0 != settings.shakeToggleModifier }
+          ) { $0 == .none ? "Off" : $0.title }
         }
         VStack(alignment: .leading, spacing: 6) {
           Text("Sensitivity")
             .font(.headline)
-          Slider(value: $settings.shakeSensitivity, in: 0...1) {
-            Text("Sensitivity")
-          } minimumValueLabel: {
-            Text("Low").font(.caption).foregroundStyle(.secondary)
-          } maximumValueLabel: {
-            Text("High").font(.caption).foregroundStyle(.secondary)
+          HStack(spacing: 10) {
+            Text("Low")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            SteppedSlider(title: "Sensitivity", value: $settings.shakeSensitivity, steps: 6)
+            Text("High")
+              .font(.caption)
+              .foregroundStyle(.secondary)
           }
-          .labelsHidden()
-          .tint(.accentColor)
         }
       }
       .disabled(!settings.isShakeEnabled)
-      Divider()
+      RowDivider()
       ToggleRow(title: "Peek at corners", isOn: $settings.peeksAtCorners)
     }
   }
@@ -140,19 +113,22 @@ private struct ShortcutRow: View {
         }
       }
       Spacer(minLength: 4)
-      Button(isRecording ? "Cancel" : "Change Shortcut", systemImage: isRecording ? "xmark" : "pencil") {
-        if isRecording {
-          model.finishRecording(nil)
-        } else {
-          model.beginRecording(action)
+      Group {
+        Button(isRecording ? "Cancel" : "Change Shortcut", systemImage: isRecording ? "xmark" : "pencil") {
+          if isRecording {
+            model.finishRecording(nil)
+          } else {
+            model.beginRecording(action)
+          }
         }
+        Button("Remove Shortcut", systemImage: "trash") {
+          model.hotKeys.set(nil, for: action)
+        }
+        .disabled(shortcut == nil || isRecording)
       }
-      Button("Remove Shortcut", systemImage: "trash") {
-        model.hotKeys.set(nil, for: action)
-      }
-      .disabled(shortcut == nil || isRecording)
+      .labelStyle(.iconOnly)
+      .buttonStyle(.borderless)
+      .frame(width: 26, height: 30)
     }
-    .labelStyle(.iconOnly)
-    .buttonStyle(.borderless)
   }
 }

@@ -21,10 +21,8 @@ struct IntroCard: View {
         Text("Got it")
           .font(.headline)
           .frame(maxWidth: .infinity)
-          .padding(.vertical, 4)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.capsule)
+      .buttonStyle(PanelButtonStyle(isOnTint: true))
       .padding(.top, 4)
     }
     .foregroundStyle(.white)
@@ -45,7 +43,7 @@ struct CurrentAppCard: View {
     } label: {
       HStack(spacing: 12) {
         if let bundleID {
-          AppIcon(identity: .lookup(bundleID), size: 30)
+          AppIcon(identity: .lookup(bundleID), size: 36)
         }
         VStack(alignment: .leading, spacing: 1) {
           Text(isIgnored ? "Ignored" : "Ignore")
@@ -61,7 +59,7 @@ struct CurrentAppCard: View {
           .accessibilityHidden(true)
       }
       .padding(.horizontal, 16)
-      .frame(maxWidth: .infinity, minHeight: 56)
+      .frame(maxWidth: .infinity, minHeight: 62)
       .foregroundStyle(isIgnored ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
       .contentShape(.capsule)
     }
@@ -81,8 +79,8 @@ struct PowerButton: View {
     Toggle(isOn: $settings.isEnabled) {
       Label("Lull", systemImage: "power")
         .labelStyle(.iconOnly)
-        .font(.title3.weight(.semibold))
-        .frame(width: 56, height: 56)
+        .font(.title2.weight(.medium))
+        .frame(width: 62, height: 62)
         .foregroundStyle(settings.isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
         .contentShape(.circle)
     }
@@ -99,22 +97,22 @@ struct ModeCard: View {
   var body: some View {
     @Bindable var settings = model.settings
     HStack(spacing: 12) {
-      RowSymbol(name: settings.mode == .deep ? "circle.fill" : "circle.lefthalf.filled")
+      // A glowing dot for Ambient, a plain solid one for Deep.
+      Circle()
+        .fill(.white)
+        .frame(width: 16, height: 16)
+        .shadow(color: .white.opacity(settings.mode == .ambient ? 0.9 : 0), radius: 5)
+        .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
+        .frame(width: 28)
+        .animation(.smooth, value: settings.mode)
+        .accessibilityHidden(true)
       Text("Mode")
         .font(.headline)
       Spacer()
-      Picker("Mode", selection: $settings.mode) {
-        ForEach(FocusMode.allCases, id: \.self) { mode in
-          Text(mode.title).tag(mode)
-        }
-      }
-      .pickerStyle(.menu)
-      .buttonStyle(.borderless)
-      .labelsHidden()
-      .fixedSize()
+      RowPicker(title: "Mode", selection: $settings.mode, options: FocusMode.allCases) { $0.title }
     }
-    .padding(.horizontal, 18)
-    .frame(maxWidth: .infinity, minHeight: 56)
+    .padding(.horizontal, 20)
+    .frame(maxWidth: .infinity, minHeight: 62)
     .glassEffect(.regular, in: .capsule)
   }
 }

@@ -17,6 +17,8 @@ final class AppModel {
   /// A card for the panel to scroll to: top, focus, gestures, shortcuts, finish,
   /// ignored, about or footer.
   var scrollTarget: String?
+  /// Closes the panel; set by the panel's controller.
+  @ObservationIgnored var closePanel: (() -> Void)?
 
   init(settings: LullSettings, engine: FocusEngine, hotKeys: HotKeys, updates: UpdateController) {
     self.settings = settings

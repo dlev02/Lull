@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Version, start at login, the command line, and housekeeping.
+/// Version, updates, start at login, the command line, and housekeeping.
 struct AboutCard: View {
   @Environment(AppModel.self) private var model
   @State private var showsCommands = false
@@ -41,25 +41,26 @@ struct AboutCard: View {
           Button("Check Updates") {
             model.updates.checkNow()
           }
-          .buttonStyle(.glass)
-          .buttonBorderShape(.capsule)
+          .buttonStyle(PanelButtonStyle())
           .disabled(!model.updates.canCheck)
         }
       }
+      .frame(minHeight: 30)
       if model.updates.isAvailable {
+        RowDivider()
         ToggleRow(title: "Automatic updates", isOn: Binding {
           model.updates.checksAutomatically
         } set: { enabled in
           model.updates.checksAutomatically = enabled
         })
       }
-      Divider()
+      RowDivider()
       ToggleRow(title: "Launch at login", isOn: Binding {
         model.launchesAtLogin
       } set: { enabled in
         model.setLaunchesAtLogin(enabled)
       })
-      Divider()
+      RowDivider()
       Button {
         withAnimation(.smooth(duration: 0.3)) {
           showsCommands.toggle()
@@ -74,6 +75,7 @@ struct AboutCard: View {
             .foregroundStyle(.secondary)
             .rotationEffect(.degrees(showsCommands ? 180 : 0))
         }
+        .frame(minHeight: 30)
         .contentShape(.rect)
       }
       .buttonStyle(.plain)
@@ -90,22 +92,21 @@ struct AboutCard: View {
         Button(model.isCommandInstalled ? "lull Command Installed" : "Install lull Command", systemImage: model.isCommandInstalled ? "checkmark" : "terminal") {
           model.installCommand()
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
+        .buttonStyle(PanelButtonStyle())
         .disabled(model.isCommandInstalled)
       }
-      Divider()
+      RowDivider()
       HStack {
         Button("Show Intro") {
           model.isIntroVisible = true
+          model.scrollTarget = "top"
         }
         Spacer()
         Button("Reset All Settings") {
           model.resetAll()
         }
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.capsule)
+      .buttonStyle(PanelButtonStyle())
     }
   }
 }
@@ -129,8 +130,7 @@ struct FooterCard: View {
             model.openIssue()
           }
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.capsule)
+        .buttonStyle(PanelButtonStyle(isOnTint: true))
         HStack(spacing: 6) {
           Text("© 2026 \(AppInfo.author)")
           Text("·")
@@ -141,6 +141,7 @@ struct FooterCard: View {
         .opacity(0.8)
       }
       .frame(maxWidth: .infinity)
+      .padding(.vertical, 4)
     }
     .foregroundStyle(.white)
   }

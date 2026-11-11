@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-11-10
+
+A polish pass on the panel.
+
+- Scrolling the panel is smooth. It used to stall whenever the pointer was between two cards.
+- Sliders now snap to steps, with a tick at each, so a setting is easy to return to.
+- Cards have more room, hairlines between rows and clearer icons, and buttons respond to the pointer.
+- Clicking the space between cards closes the panel.
+
 ## 0.1.0 — 2026-11-10
 
 The first version of Lull. It blurs everything on screen except the window you are working in.
