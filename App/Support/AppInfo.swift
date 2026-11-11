@@ -6,6 +6,7 @@ enum AppInfo {
   static let author = "Drew Levinson"
   static let authorURL = URL(string: "https://github.com/dlev02")!
   static let repositoryURL = URL(string: "https://github.com/dlev02/Lull")!
+  static let privacyURL = URL(string: "https://github.com/dlev02/Lull/blob/main/PRIVACY.md")!
 
   static var version: String {
     Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"

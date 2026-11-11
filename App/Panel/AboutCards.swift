@@ -131,9 +131,14 @@ struct FooterCard: View {
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.capsule)
-        Text("© 2026 \(AppInfo.author)")
-          .font(.caption)
-          .opacity(0.7)
+        HStack(spacing: 6) {
+          Text("© 2026 \(AppInfo.author)")
+          Text("·")
+          Link("Privacy", destination: AppInfo.privacyURL)
+            .underline()
+        }
+        .font(.caption)
+        .opacity(0.8)
       }
       .frame(maxWidth: .infinity)
     }
