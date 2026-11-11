@@ -75,7 +75,14 @@ ditto "$built" "$app"
 [[ "$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")" == "$version" ]] || die "the built app isn't version $version"
 [[ ! -e "$app/Contents/MacOS/Lull.debug.dylib" ]] || die "this is a debug build"
 
-sparkle_bin=$(find dist/DerivedData "${built:h:h:h:h:h}/DerivedData" -type d -path '*artifacts/sparkle/Sparkle/bin' 2>/dev/null | head -1)
+# Sparkle's tools come with the package, beside whichever build system made the app.
+sparkle_bin=""
+for packages in dist/DerivedData/SourcePackages "${built:h:h:h:h:h}/DerivedData/SourcePackages"; do
+  if [[ -x "$packages/artifacts/sparkle/Sparkle/bin/generate_appcast" ]]; then
+    sparkle_bin="$packages/artifacts/sparkle/Sparkle/bin"
+    break
+  fi
+done
 [[ -n "$sparkle_bin" ]] || die "Sparkle's tools weren't found beside the build"
 public_key=$("$sparkle_bin/generate_keys" --account "$account" -p) || die "no Sparkle key for account $account in the Keychain"
 [[ "$public_key" == "$(plutil -extract SUPublicEDKey raw "$app/Contents/Info.plist")" ]] || die "the Keychain's Sparkle key doesn't match SUPublicEDKey"
