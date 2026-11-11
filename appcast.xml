@@ -1,8 +1,27 @@
-<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+<?xml version="1.0" standalone="yes"?>
+<!-- sparkle-sign-warning:
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
---><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>Lull</title>
+        <item>
+            <title>0.1.1</title>
+            <pubDate>Tue, 10 Nov 2026 19:50:04 -0600</pubDate>
+            <link>https://github.com/dlev02/Lull/releases/tag/v0.1.1</link>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[
+A polish pass on the panel.
+
+- Scrolling the panel is smooth. It used to stall whenever the pointer was between two cards.
+- Sliders now snap to steps, with a tick at each, so a setting is easy to return to.
+- Cards have more room, hairlines between rows and clearer icons, and buttons respond to the pointer.
+- Clicking the space between cards closes the panel.
+]]></description>
+            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.1/Lull-0.1.1.zip" length="2683641" type="application/octet-stream" sparkle:edSignature="BEjK6LDfKyrXkkyjzwWMU3+RIPix2WecapL4kYaCrUAv4NK7yT1kBM+ohUtkst6a43s3ecZHNJ74vawFI75dCg=="/>
+        </item>
         <item>
             <title>0.1.0</title>
             <pubDate>Tue, 10 Nov 2026 19:38:08 -0600</pubDate>
@@ -44,10 +63,11 @@ The first version of Lull. It blurs everything on screen except the window you a
 - It needs no permissions for normal use. Only Auto-hide asks for Automation, and only when you turn it on.
 - Lull starts at login, checks for updates once a day and installs an update the next time it quits. Both can be turned off in the panel.
 ]]></description>
-            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.0/Lull-0.1.0.zip" length="2653015" type="application/octet-stream" sparkle:edSignature="U58UwzxBCnTIHaQhRftAwDEyZGjF1hq9xRwi8idvccmpwgDEbNSIzCujL6k+pJe9mt9dx+5WjHawUKbrzWW6Aw=="></enclosure>
+            <enclosure url="https://github.com/dlev02/Lull/releases/download/v0.1.0/Lull-0.1.0.zip" length="2653015" type="application/octet-stream" sparkle:edSignature="U58UwzxBCnTIHaQhRftAwDEyZGjF1hq9xRwi8idvccmpwgDEbNSIzCujL6k+pJe9mt9dx+5WjHawUKbrzWW6Aw=="/>
         </item>
     </channel>
-</rss><!-- sparkle-signatures:
-edSignature: 4v5KXbV4vb7GlFWra/N/x7Kx/JlJ9oHg3ozXgUmzQlDVibbkhu8TmAc1gzcvp96ggB3ungeIsohHWQEIQ/BcCA==
-length: 3004
+</rss>
+<!-- sparkle-signatures:
+edSignature: Gj+RKJKoYmRF54KDPvPNdS6360bhEaROTvOczgzUnCrbJBgM0e3Gtc0ZBM5x5RQCGnZqkbqv0uatyNPqGYRqDw==
+length: 4105
 -->
