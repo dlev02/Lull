@@ -94,8 +94,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   /// `lull://toggle`, `lull://mode/deep`, `lull://blur/60`: the path is the command.
   func application(_ application: NSApplication, open urls: [URL]) {
+    // Any web page can open a link, so links can't do what would be a nuisance or
+    // reach outside the app: those stay with the command line and the panel.
+    let notFromLinks: Set<String> = ["reset", "quit", "login", "auto-hide", "tune"]
     for url in urls where url.scheme == "lull" {
       let arguments = ([url.host()] + url.pathComponents.filter { $0 != "/" }).compactMap { $0 }
+      guard let command = arguments.first?.lowercased(), !notFromLinks.contains(command) else {
+        Log.warning(.control, "link refused: \(url.absoluteString)")
+        continue
+      }
       Log.info(.control, "link: \(url.absoluteString)")
       _ = router.run(arguments)
     }
