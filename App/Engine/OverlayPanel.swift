@@ -8,10 +8,11 @@ struct OverlayLook: Equatable {
   var saturation: Double = 1
   var tintColor: CGColor = .black
   var tintOpacity: Double = 0
-  /// A faint wash over the blur: dark in Dark Mode, light in Light Mode.
-  var veilColor: CGColor = .black
-  var veilOpacity: Double = 0
   var grainOpacity: Double = 0
+  /// How far down the display the effect takes to reach full strength, as a fraction
+  /// of its height. Zero is full strength everywhere (Deep); Ambient leaves the top
+  /// of the screen clear and fades in below it.
+  var fadeDepth: Double = 0
 }
 
 /// A click-through window covering one display. The engine slots it directly beneath
@@ -19,29 +20,45 @@ struct OverlayLook: Equatable {
 /// no per-frame work.
 final class OverlayPanel: NSPanel {
   enum Backend: String {
-    case backdrop, material, dim
+    case backdrop, material
+  }
+
+  enum Placement {
+    /// A normal-level window the engine slots beneath the focused window. It shows
+    /// everywhere except over Stage Manager's thumbnails.
+    case beneathFocus
+    /// Behind every app window but above the desktop. It shows only around Stage
+    /// Manager's thumbnails, where the other overlay leaves a hole.
+    case behindWindows
   }
 
   let displayID: CGDirectDisplayID
-  private(set) var backend: Backend = .dim
+  private(set) var backend: Backend = .material
+  private let placement: Placement
   private let root = CALayer()
+  /// Masked by the thumbnail holes.
+  private let content = CALayer()
+  /// Masked by the top-to-bottom fade.
+  private let fadeHost = CALayer()
+  private let fadeMask = CAGradientLayer()
   private var backdrop: CALayer?
   private var material: NSVisualEffectView?
-  private let veil = CALayer()
   private let tint = CALayer()
   private let grain = CALayer()
   private var look = OverlayLook()
+  private var holes: [CGRect] = []
   private var isShown = false
 
-  init(screen: NSScreen, displayID: CGDirectDisplayID) {
+  init(screen: NSScreen, displayID: CGDirectDisplayID, placement: Placement) {
     self.displayID = displayID
+    self.placement = placement
     super.init(
       contentRect: screen.frame,
       styleMask: [.borderless, .nonactivatingPanel],
       backing: .buffered,
       defer: false
     )
-    level = .normal
+    level = placement == .beneathFocus ? .normal : NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue - 1)
     isOpaque = false
     // Not fully clear: the backdrop only samples behind a window that draws something.
     backgroundColor = NSColor.white.withAlphaComponent(0.001)
@@ -70,9 +87,11 @@ final class OverlayPanel: NSPanel {
 
   private func buildLayers(in view: NSView) {
     root.masksToBounds = true
+    root.addSublayer(content)
+    content.addSublayer(fadeHost)
     if SystemBlur.isAvailable, let layer = SystemBlur.makeBackdrop() {
       // The window is prepared after the backdrop joins its layer tree.
-      root.addSublayer(layer)
+      fadeHost.addSublayer(layer)
       if SystemBlur.prepare(self) {
         backdrop = layer
         backend = .backdrop
@@ -81,36 +100,62 @@ final class OverlayPanel: NSPanel {
       }
     }
     if backdrop == nil {
-      // Public fallback: fixed-strength system blur.
+      // Public fallback: fixed-strength system blur, with no soft fade.
       let effect = NSVisualEffectView(frame: view.bounds)
       effect.material = .fullScreenUI
       effect.blendingMode = .behindWindow
       effect.state = .active
       effect.autoresizingMask = [.width, .height]
-      view.addSubview(effect)
+      view.addSubview(effect, positioned: .below, relativeTo: nil)
       material = effect
-      backend = .material
     }
     grain.backgroundColor = NSColor(patternImage: OverlayPanel.grainImage).cgColor
     grain.opacity = 0
-    for layer in [veil, tint, grain] {
-      root.addSublayer(layer)
-    }
-    veil.opacity = 0
     tint.opacity = 0
+    fadeHost.addSublayer(tint)
+    fadeHost.addSublayer(grain)
+
+    // Layer geometry is bottom-up, so the fade starts at y = 1, the top of the display.
+    fadeMask.startPoint = CGPoint(x: 0.5, y: 1)
+    fadeMask.endPoint = CGPoint(x: 0.5, y: 0)
+    fadeMask.colors = [CGColor(gray: 0, alpha: 1), CGColor(gray: 0, alpha: 1)]
+    fadeMask.locations = [0, 1]
+    fadeHost.mask = fadeMask
     Log.info(.overlay, "overlay for display \(displayID) uses \(backend.rawValue) blur")
   }
 
-  /// Applies a look. `coverage` is the part of the display to cover, in the panel's
-  /// own coordinates; the Stage Manager strip is left out of it when it should stay sharp.
-  func apply(_ newLook: OverlayLook, coverage: CGRect, animated: Bool, duration: TimeInterval) {
+  /// Applies a look. `holes` are rectangles, in the panel's own coordinates, where
+  /// Stage Manager's thumbnails sit. Each blur samples its whole area and is only
+  /// masked afterwards, which is why no seam shows where the two overlays meet.
+  func apply(_ newLook: OverlayLook, holes newHoles: [CGRect], animated: Bool, duration: TimeInterval) {
+    let bounds = CGRect(origin: .zero, size: frame.size)
+    guard newLook != look || newHoles != holes || content.frame != bounds else { return }
     CATransaction.begin()
     CATransaction.setDisableActions(!animated)
     CATransaction.setAnimationDuration(duration)
-    for layer in [backdrop, veil, tint, grain].compactMap({ $0 }) where layer.frame != coverage {
-      layer.frame = coverage
+
+    if newHoles != holes || content.frame != bounds {
+      for layer in [content, fadeHost, fadeMask] {
+        layer.frame = bounds
+      }
+      // The behind-windows panel only needs to blur around the holes it shows through.
+      var area = bounds
+      if placement == .behindWindows, let first = newHoles.first {
+        area = newHoles.dropFirst().reduce(first) { $0.union($1) }.insetBy(dx: -140, dy: -140).intersection(bounds)
+      }
+      for layer in [backdrop, tint, grain].compactMap({ $0 }) {
+        layer.frame = area
+      }
+      material?.frame = area
+      content.mask = makeHoleMask(newHoles, in: bounds)
     }
-    material?.frame = coverage
+
+    // Clear at the top of the display, full strength from `fadeDepth` down.
+    let clear = CGColor(gray: 0, alpha: 0)
+    let solid = CGColor(gray: 0, alpha: 1)
+    fadeMask.colors = newLook.fadeDepth > 0 ? [clear, solid] : [solid, solid]
+    fadeMask.locations = [0, NSNumber(value: max(newLook.fadeDepth, 0.001))]
+
     if let backdrop {
       if animated, look.blurRadius != newLook.blurRadius {
         let animation = CABasicAnimation(keyPath: "filters.gaussianBlur.inputRadius")
@@ -124,13 +169,37 @@ final class OverlayPanel: NSPanel {
       SystemBlur.setRadius(newLook.blurRadius, on: backdrop)
       SystemBlur.setSaturation(newLook.saturation, on: backdrop)
     }
-    veil.backgroundColor = newLook.veilColor
-    veil.opacity = Float(newLook.veilOpacity)
     tint.backgroundColor = newLook.tintColor
     tint.opacity = Float(newLook.tintOpacity)
     grain.opacity = Float(newLook.grainOpacity)
     CATransaction.commit()
     look = newLook
+    holes = newHoles
+  }
+
+  private func makeHoleMask(_ holes: [CGRect], in bounds: CGRect) -> CALayer? {
+    guard !holes.isEmpty else { return nil }
+    // Holes overlap (a thumbnail and its app icon), so merge them into one outline
+    // first; otherwise the even-odd fill below would turn the overlap solid again.
+    var outline = CGPath(rect: .zero, transform: nil)
+    for hole in holes {
+      let rounded = CGPath(
+        roundedRect: hole, cornerWidth: min(10, hole.width / 2), cornerHeight: min(10, hole.height / 2), transform: nil
+      )
+      outline = outline.union(rounded)
+    }
+    let mask = CAShapeLayer()
+    mask.frame = bounds
+    if placement == .beneathFocus {
+      let path = CGMutablePath()
+      path.addRect(bounds)
+      path.addPath(outline)
+      mask.fillRule = .evenOdd
+      mask.path = path
+    } else {
+      mask.path = outline
+    }
+    return mask
   }
 
   /// Puts the panel directly beneath another window in the global window order.
@@ -167,8 +236,6 @@ final class OverlayPanel: NSPanel {
       }
     }
   }
-
-  var isOverlayShown: Bool { isShown }
 
   /// One small noise tile, generated once and repeated by the window server.
   private static let grainImage: NSImage = {

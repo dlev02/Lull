@@ -28,11 +28,20 @@ final class FocusEngine {
   }
 
   @ObservationIgnored private var overlays: [CGDirectDisplayID: OverlayPanel] = [:]
+  /// One per display, behind every window. It blurs the wallpaper that shows around
+  /// Stage Manager's thumbnails, where the main overlay leaves a hole.
+  @ObservationIgnored private var desktopPanels: [CGDirectDisplayID: OverlayPanel] = [:]
+  @ObservationIgnored private lazy var windowEvents = WindowEvents { [weak self] in
+    self?.evaluate(reason: "window-event")
+    self?.scheduleFollowUps(reason: "window-event+settle", delays: [0.12])
+  }
+  @ObservationIgnored private(set) var usesWindowEvents = false
   @ObservationIgnored private var mouseMonitor: Any?
   @ObservationIgnored private var followUps: [DispatchWorkItem] = []
   @ObservationIgnored private var lastFrontPID: pid_t?
   @ObservationIgnored private var lastLook: OverlayLook?
   @ObservationIgnored private var lastMode: FocusMode?
+  @ObservationIgnored private var isConfirmingNoWindow = false
   @ObservationIgnored private let ownPID = ProcessInfo.processInfo.processIdentifier
   @ObservationIgnored private(set) var evaluationCount = 0
 
@@ -58,14 +67,13 @@ final class FocusEngine {
       self, selector: #selector(screensChanged(_:)),
       name: NSApplication.didChangeScreenParametersNotification, object: nil
     )
-    DistributedNotificationCenter.default().addObserver(
-      self, selector: #selector(appearanceChanged(_:)),
-      name: Notification.Name("AppleInterfaceThemeChangedNotification"), object: nil
-    )
-    // Mouse events need no permission. A click is how focus moves between windows
-    // of the same app, which no notification reports.
-    mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] _ in
-      self?.scheduleFollowUps(reason: "click", delays: [0.04, 0.25])
+    usesWindowEvents = windowEvents.start()
+    if !usesWindowEvents {
+      // Fallback: mouse events need no permission either, and a click is how focus
+      // usually moves between windows of the same app.
+      mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] _ in
+        self?.scheduleFollowUps(reason: "click", delays: [0.04, 0.25])
+      }
     }
     evaluate(reason: "start")
     Log.info(.engine, "engine started, enabled=\(settings.isEnabled)")
@@ -83,11 +91,6 @@ final class FocusEngine {
   @objc private func screensChanged(_ notification: Notification) {
     evaluate(reason: "screens")
     scheduleFollowUps(reason: "screens+settle", delays: [0.5])
-  }
-
-  @objc private func appearanceChanged(_ notification: Notification) {
-    // The app's own appearance updates a beat after the system announces the switch.
-    scheduleFollowUps(reason: "appearance", delays: [0.3])
   }
 
   private func scheduleFollowUps(reason: String, delays: [TimeInterval]) {
@@ -119,7 +122,20 @@ final class FocusEngine {
     guard let frontPID = lastFrontPID else { return hideAll(.noWindow, reason: reason) }
 
     let snapshot = WindowSnapshot.capture(ownPID: ownPID)
+    windowEvents.watch(snapshot.candidates.map(\.id))
     guard let focused = snapshot.candidates.first(where: { $0.pid == frontPID }) else {
+      // A closing app is briefly frontmost with no windows before the next one takes
+      // over. Wait a moment before standing down, so the blur does not flash off.
+      if isActive, reason != "confirm-no-window" {
+        if !isConfirmingNoWindow {
+          isConfirmingNoWindow = true
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.isConfirmingNoWindow = false
+            self?.evaluate(reason: "confirm-no-window")
+          }
+        }
+        return
+      }
       return hideAll(.noWindow, reason: reason)
     }
 
@@ -147,18 +163,31 @@ final class FocusEngine {
         anchor = onDisplay.last(where: isSharp) ?? onDisplay.first
       }
 
-      var coverage = CGRect(origin: .zero, size: displayBounds.size)
-      if !settings.blursStageManager, let strip = snapshot.stripColumn(on: displayBounds) {
-        // Leave Stage Manager's strip uncovered so its thumbnails stay sharp.
-        let local = strip.offsetBy(dx: -displayBounds.minX, dy: -displayBounds.minY)
-        if local.minX <= 0 {
-          coverage.origin.x = local.maxX
-          coverage.size.width -= local.maxX
-        } else {
-          coverage.size.width = local.minX
+      // Stage Manager's thumbnails stay sharp through holes in the main overlay.
+      var holes: [CGRect] = []
+      if !settings.blursStageManager {
+        holes = snapshot.stripRects.filter { displayBounds.intersects($0) }.map { rect in
+          // Window bounds have a top-left origin; layers have a bottom-left one.
+          CGRect(
+            x: rect.minX - displayBounds.minX,
+            y: displayBounds.maxY - rect.maxY,
+            width: rect.width,
+            height: rect.height
+          )
         }
       }
-      panel.apply(look, coverage: coverage, animated: animateLook, duration: duration)
+      panel.apply(look, holes: holes, animated: animateLook, duration: duration)
+      if let desktopPanel = desktopPanels[displayID] {
+        if holes.isEmpty {
+          desktopPanel.fadeOut(duration: duration)
+        } else {
+          desktopPanel.apply(look, holes: holes, animated: animateLook, duration: duration)
+          if !desktopPanel.isVisible {
+            desktopPanel.orderFrontRegardless()
+          }
+          desktopPanel.fadeIn(duration: duration)
+        }
+      }
 
       if !isSlotted(panel, beneath: anchor, in: snapshot) {
         panel.slot(beneath: anchor?.id)
@@ -215,7 +244,7 @@ final class FocusEngine {
     if isActive || standDown != why {
       Log.info(.engine, "stand down: \(why.rawValue) (\(reason))")
     }
-    for panel in overlays.values {
+    for panel in Array(overlays.values) + Array(desktopPanels.values) {
       panel.fadeOut(duration: settings.transitionDuration)
     }
     standDown = why
@@ -234,37 +263,33 @@ final class FocusEngine {
       if let panel = overlays[displayID] {
         if panel.frame != screen.frame {
           panel.setFrame(screen.frame, display: false)
+          desktopPanels[displayID]?.setFrame(screen.frame, display: false)
         }
       } else {
-        overlays[displayID] = OverlayPanel(screen: screen, displayID: displayID)
+        overlays[displayID] = OverlayPanel(screen: screen, displayID: displayID, placement: .beneathFocus)
+        desktopPanels[displayID] = OverlayPanel(screen: screen, displayID: displayID, placement: .behindWindows)
       }
     }
     for (displayID, panel) in overlays where !seen.contains(displayID) {
       panel.orderOut(nil)
+      desktopPanels[displayID]?.orderOut(nil)
       overlays[displayID] = nil
+      desktopPanels[displayID] = nil
       Log.info(.overlay, "display \(displayID) removed")
     }
+    windowEvents.ownWindowIDs = Set((Array(overlays.values) + Array(desktopPanels.values)).map { UInt32($0.windowNumber) })
   }
 
   /// The sliders set the look once; the mode is a strength on top of them.
   func currentLook() -> OverlayLook {
     var look = OverlayLook()
-    let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    switch settings.mode {
-    case .ambient:
-      look.blurRadius = settings.blur * 12
-      look.veilOpacity = 0.03 + settings.blur * 0.05
-    case .deep:
-      look.blurRadius = settings.blur * 60
-      look.veilOpacity = 0.08 + settings.blur * 0.10
-    }
+    look.blurRadius = settings.blur * 60
     // Quarter-resolution sampling halves the cost and is invisible once the blur is
     // soft enough; a very light blur needs more resolution to stay smooth.
     look.scale = look.blurRadius >= 6 ? 0.25 : 0.5
-    look.veilColor = isDark ? .black : .white
-    if !isDark {
-      look.veilOpacity *= 1.6
-    }
+    // Ambient leaves the top of the screen clear and reaches full strength about
+    // halfway down; Deep covers everything.
+    look.fadeDepth = settings.mode == .ambient ? 0.49 : 0
     look.saturation = settings.isMonochrome ? 0 : 1
     look.tintColor = (NSColor(hex: settings.tintColor) ?? .black).cgColor
     look.tintOpacity = settings.tint * 0.6
@@ -272,8 +297,8 @@ final class FocusEngine {
     // Developer overrides from `lull tune`, for measuring cost against quality.
     if let value = tuning["scale"] { look.scale = value }
     if let value = tuning["radius"] { look.blurRadius = value }
-    if let value = tuning["veil"] { look.veilOpacity = value }
     if let value = tuning["grain"] { look.grainOpacity = value }
+    if let value = tuning["fade"] { look.fadeDepth = value }
     return look
   }
 

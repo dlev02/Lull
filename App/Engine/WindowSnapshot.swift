@@ -58,17 +58,4 @@ struct WindowSnapshot {
     }
     return snapshot
   }
-
-  /// The column Stage Manager's strip occupies on a display, or nil when it isn't showing.
-  func stripColumn(on display: CGRect) -> CGRect? {
-    let rects = stripRects.filter { display.intersects($0) }
-    guard let first = rects.first else { return nil }
-    let union = rects.dropFirst().reduce(first) { $0.union($1) }.intersection(display)
-    let padding: CGFloat = 14
-    if union.midX < display.midX {
-      return CGRect(x: display.minX, y: display.minY, width: union.maxX - display.minX + padding, height: display.height)
-    }
-    let minX = union.minX - padding
-    return CGRect(x: minX, y: display.minY, width: display.maxX - minX, height: display.height)
-  }
 }
