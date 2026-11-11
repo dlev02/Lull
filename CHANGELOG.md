@@ -4,6 +4,7 @@
 
 - With Stage Manager on, the strip sits on one soft, even patch, without the boxes that showed between and around its thumbnails.
 - Bringing a window out of Stage Manager's strip no longer leaves the blur off until the next click.
+- A window in full screen, such as a YouTube video, is no longer covered by the blur.
 
 ## 0.1.3 — 2026-11-11
 

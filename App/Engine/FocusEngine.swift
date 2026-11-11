@@ -172,6 +172,15 @@ final class FocusEngine {
       let displayBounds = CGDisplayBounds(displayID)
       let onDisplay = snapshot.candidates.filter { displayBounds.contains(CGPoint(x: $0.bounds.midX, y: $0.bounds.midY)) }
 
+      // A sharp window filling the display leaves nothing behind it to blur. This is
+      // also how a full-screen Space looks, where the overlay, which joins every
+      // Space, cannot be slotted beneath the window and would cover it instead.
+      if let front = onDisplay.first, isSharp(front), covers(front.bounds, display: displayBounds) {
+        panel.conceal(settings.revealEffect, duration: duration)
+        desktopPanels[displayID]?.conceal(settings.revealEffect, duration: duration)
+        continue
+      }
+
       // The overlay goes beneath the rearmost window that should stay sharp.
       let anchor: WindowInfo?
       switch settings.screenMode {
@@ -254,6 +263,12 @@ final class FocusEngine {
     let item = DispatchWorkItem { [weak self] in self?.evaluate(reason: "strip") }
     stripFollowUp = item
     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 30, execute: item)
+  }
+
+  /// True when a window reaches every edge of a display, allowing for the menu bar.
+  private func covers(_ window: CGRect, display: CGRect) -> Bool {
+    window.minX <= display.minX + 1 && window.maxX >= display.maxX - 1
+      && window.maxY >= display.maxY - 1 && window.minY <= display.minY + 44
   }
 
   /// Apps whose every window stays sharp: the front app when app-wide focus is on,
