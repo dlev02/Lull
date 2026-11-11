@@ -79,7 +79,7 @@ Commands reply in JSON and exit with 0 on success and 1 on failure. If Lull is n
 
 Run `lull help` for the rest.
 
-`lull://` links run the same commands, with the path as the command: `open lull://toggle`, `open lull://mode/deep`, `open lull://blur/60`. Links can't reset settings, quit Lull, or change start at login or Auto-hide.
+`lull://` links run the same commands, with the path as the command: `open lull://toggle`, `open lull://mode/deep`, `open lull://blur/60`. Links can't reset settings, quit Lull, install updates, or change start at login or Auto-hide.
 
 ## How it works
 

@@ -60,30 +60,20 @@ mkdir -p "$out"
 app="$out/Lull.app"
 
 step "Building"
-built=""
-if (( $+commands[bitrig] )); then
-  # Inside Bitrig, use its build system and cache.
-  built=$(bitrig build -destination 'generic/platform=macOS' -configuration Release 2>"$out/build.log" \
-    | python3 -c 'import json, sys; print(json.load(sys.stdin)["builds"][0]["apps"][0])' 2>/dev/null || true)
-fi
-if [[ -z "$built" || ! -d "$built" ]]; then
-  xcodebuild -project Lull.xcodeproj -scheme Lull -configuration Release -derivedDataPath dist/DerivedData \
-    CODE_SIGN_IDENTITY=- build >>"$out/build.log" 2>&1 || { tail -30 "$out/build.log"; die "the build failed; see $out/build.log"; }
-  built=dist/DerivedData/Build/Products/Release/Lull.app
-fi
+# xcodebuild rather than an editor's own builder, so a release is built the same way
+# on any Mac and runs on both Apple silicon and Intel.
+xcodebuild -project Lull.xcodeproj -scheme Lull -configuration Release -derivedDataPath dist/DerivedData \
+  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- build >"$out/build.log" 2>&1 \
+  || { tail -30 "$out/build.log"; die "the build failed; see $out/build.log"; }
+built=dist/DerivedData/Build/Products/Release/Lull.app
 ditto "$built" "$app"
 [[ "$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")" == "$version" ]] || die "the built app isn't version $version"
 [[ ! -e "$app/Contents/MacOS/Lull.debug.dylib" ]] || die "this is a debug build"
+archs=$(lipo -archs "$app/Contents/MacOS/Lull")
+[[ "$archs" == *arm64* && "$archs" == *x86_64* ]] || die "the app isn't universal: $archs"
 
-# Sparkle's tools come with the package, beside whichever build system made the app.
-sparkle_bin=""
-for packages in dist/DerivedData/SourcePackages "${built:h:h:h:h:h}/DerivedData/SourcePackages"; do
-  if [[ -x "$packages/artifacts/sparkle/Sparkle/bin/generate_appcast" ]]; then
-    sparkle_bin="$packages/artifacts/sparkle/Sparkle/bin"
-    break
-  fi
-done
-[[ -n "$sparkle_bin" ]] || die "Sparkle's tools weren't found beside the build"
+sparkle_bin=dist/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin
+[[ -x "$sparkle_bin/generate_appcast" ]] || die "Sparkle's tools weren't found beside the build"
 public_key=$("$sparkle_bin/generate_keys" --account "$account" -p) || die "no Sparkle key for account $account in the Keychain"
 [[ "$public_key" == "$(plutil -extract SUPublicEDKey raw "$app/Contents/Info.plist")" ]] || die "the Keychain's Sparkle key doesn't match SUPublicEDKey"
 

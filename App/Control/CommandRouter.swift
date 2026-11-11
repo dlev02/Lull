@@ -16,6 +16,7 @@ final class CommandRouter {
   var loginItemAction: ((Bool?) -> Bool)?
   var quitAction: (() -> Void)?
   var linkAction: ((URL) -> Void)?
+  var updates: UpdateController?
 
   static let usage = """
   usage: lull <command> [value]
@@ -40,6 +41,7 @@ final class CommandRouter {
     sensitivity <0-100>
     panel [show|hide|toggle|<card>]  cards: top focus gestures shortcuts finish ignored about footer
     login [on|off]
+    update [status|check|install|auto on|off]
     windows                       the window order Lull sees
     diagnostics | log [lines]
     reset                         restore every setting
@@ -154,6 +156,29 @@ final class CommandRouter {
         throw Failure(message: "link takes a lull:// address")
       }
       linkAction(url)
+    case "update":
+      guard let updates else { throw Failure(message: "updates are unavailable") }
+      switch value?.lowercased() {
+      case nil, "status": break
+      case "check": updates.checkInBackground()
+      case "install":
+        guard updates.isUpdateReady else { throw Failure(message: "no update is waiting") }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { updates.relaunchToUpdate() }
+      case "auto":
+        updates.checksAutomatically = try flag(values.dropFirst().first, current: updates.checksAutomatically)
+      default: throw Failure(message: "update takes status, check, install or auto [on|off]")
+      }
+      var reply: Reply = [
+        "available": updates.isAvailable,
+        "automatic": updates.checksAutomatically,
+        "ready": updates.isUpdateReady,
+        "version": AppInfo.version,
+        "build": AppInfo.build,
+      ]
+      if let lastCheck = updates.lastCheck {
+        reply["lastCheck"] = ISO8601DateFormatter().string(from: lastCheck)
+      }
+      return reply
     case "windows": return windows()
     case "diagnostics": return diagnostics()
     case "log":

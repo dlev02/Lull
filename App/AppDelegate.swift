@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     router.quitAction = { NSApp.terminate(nil) }
     router.linkAction = { [weak self] url in self?.open(url) }
+    router.updates = updates
     router.panelAction = { [weak self] verb in
       guard let self else { return false }
       switch verb {
@@ -102,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     guard url.scheme == "lull" else { return }
     // Any web page can open a link, so links can't do what would be a nuisance or
     // reach outside the app: those stay with the command line and the panel.
-    let notFromLinks: Set<String> = ["reset", "quit", "login", "auto-hide", "tune", "link"]
+    let notFromLinks: Set<String> = ["reset", "quit", "login", "auto-hide", "tune", "link", "update"]
     let arguments = ([url.host()] + url.pathComponents.filter { $0 != "/" }).compactMap { $0 }
     guard let command = arguments.first?.lowercased(), !notFromLinks.contains(command) else {
       Log.warning(.control, "link refused: \(url.absoluteString)")

@@ -60,6 +60,13 @@ final class UpdateController: NSObject, SPUUpdaterDelegate {
     updater?.checkForUpdates()
   }
 
+  /// A quiet check, as the daily one does: no window unless Sparkle needs a decision.
+  func checkInBackground() {
+    guard isAvailable else { return }
+    Log.info(.update, "background update check")
+    updater?.checkForUpdatesInBackground()
+  }
+
   func relaunchToUpdate() {
     Log.info(.update, "relaunching to install the update")
     installNow?()
