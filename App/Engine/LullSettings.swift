@@ -26,13 +26,15 @@ enum ScreenMode: String, CaseIterable {
   }
 }
 
+/// What the menu bar icon does when clicked, or that it is hidden altogether.
 enum MenuBarClick: String, CaseIterable {
-  case panel, toggle
+  case panel, toggle, hidden
 
   var title: String {
     switch self {
     case .panel: "Open Settings"
     case .toggle: "Toggle Lull"
+    case .hidden: "Hidden"
     }
   }
 }

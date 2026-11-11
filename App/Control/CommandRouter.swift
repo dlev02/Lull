@@ -34,7 +34,7 @@ final class CommandRouter {
     peek [on|off]                 show everything until turned off
     shake [on|off|toggle]
     sensitivity <0-100>
-    panel [show|hide|toggle]
+    panel [show|hide|toggle|<card>]  cards: top focus gestures shortcuts finish ignored about footer
     login [on|off]
     windows                       the window order Lull sees
     diagnostics | log [lines]
@@ -113,7 +113,7 @@ final class CommandRouter {
 
     case "panel":
       guard let panelAction, panelAction(value?.lowercased() ?? "toggle") else {
-        throw Failure(message: "panel takes show, hide or toggle")
+        throw Failure(message: "panel takes show, hide, toggle or a card: top, focus, gestures, shortcuts, finish, ignored, about, footer")
       }
     case "login":
       guard let loginItemAction else { throw Failure(message: "login item is unavailable") }

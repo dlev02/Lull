@@ -7,17 +7,80 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var server = CommandServer { [weak self] arguments in
     self?.router.run(arguments) ?? ["ok": false, "error": "Lull is shutting down"]
   }
+  private lazy var hotKeys = HotKeys { [weak self] action in
+    self?.perform(action)
+  }
+  private lazy var model = AppModel(settings: settings, engine: engine, hotKeys: hotKeys)
+  private lazy var panel = PanelController(model: model)
+  private lazy var statusItem = StatusItemController(model: model, panel: panel) {
+    NSApp.terminate(nil)
+  }
+  private lazy var shake = ShakeDetector(settings: settings) { [weak self] gesture in
+    guard let self else { return }
+    switch gesture {
+    case .toggle: self.engine.toggle()
+    case .peekBegan: self.engine.isPeeking = true
+    case .peekEnded: self.engine.isPeeking = false
+    }
+  }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    let info = Bundle.main.infoDictionary ?? [:]
-    Log.info(.app, "Lull \(info["CFBundleShortVersionString"] ?? "?") (\(info["CFBundleVersion"] ?? "?")) on \(ProcessInfo.processInfo.operatingSystemVersionString)")
+    Log.info(.app, "Lull \(AppInfo.version) (\(AppInfo.build)) on \(ProcessInfo.processInfo.operatingSystemVersionString)")
+
+    // Every setting change, from any control surface, lands here.
+    settings.onChange = { [weak self] in
+      guard let self else { return }
+      self.engine.settingsChanged()
+      self.statusItem.update()
+      self.shake.update()
+    }
     router.quitAction = { NSApp.terminate(nil) }
+    router.panelAction = { [weak self] verb in
+      guard let self else { return false }
+      switch verb {
+      case "show": self.panel.show(on: self.panelScreen)
+      case "hide": self.panel.hide()
+      case "toggle": self.panel.toggle(on: self.panelScreen)
+      case "top", "focus", "gestures", "shortcuts", "finish", "ignored", "about", "footer":
+        // Opens the panel at one card.
+        self.panel.show(on: self.panelScreen)
+        self.model.scrollTarget = verb
+      default: return false
+      }
+      return true
+    }
+    router.loginItemAction = { [weak self] wanted in
+      if let wanted {
+        self?.model.setLaunchesAtLogin(wanted)
+      }
+      return LoginItem.isEnabled
+    }
+
     engine.start()
+    hotKeys.start()
+    shake.update()
+    statusItem.update()
     server.start()
+    LoginItem.enableByDefault()
+
+    if !settings.hasSeenIntro {
+      // First launch: open the panel so the intro is the first thing seen.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+        guard let self else { return }
+        self.panel.show(on: self.panelScreen)
+      }
+    }
   }
 
   func applicationWillTerminate(_ notification: Notification) {
     server.stop()
+  }
+
+  /// Opening the app again (from Finder or Spotlight) shows the panel, which is the
+  /// way back in when the menu bar icon is hidden.
+  func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+    panel.show(on: panelScreen)
+    return false
   }
 
   /// `lull://toggle`, `lull://mode/deep`, `lull://blur/60`: the path is the command.
@@ -26,6 +89,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       let arguments = ([url.host()] + url.pathComponents.filter { $0 != "/" }).compactMap { $0 }
       Log.info(.control, "link: \(url.absoluteString)")
       _ = router.run(arguments)
+    }
+  }
+
+  private var panelScreen: NSScreen? {
+    statusItem.screen ?? NSScreen.main
+  }
+
+  private func perform(_ action: ShortcutAction) {
+    switch action {
+    case .toggle: engine.toggle()
+    case .switchMode: engine.switchMode()
+    case .ignoreApp: engine.toggleIgnoreFrontApp()
+    case .toggleControls: panel.toggle(on: panelScreen)
     }
   }
 }

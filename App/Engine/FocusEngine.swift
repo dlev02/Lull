@@ -50,8 +50,6 @@ final class FocusEngine {
   }
 
   func start() {
-    settings.onChange = { [weak self] in self?.evaluate(reason: "settings") }
-
     let workspace = NSWorkspace.shared.notificationCenter
     for name in [
       NSWorkspace.didActivateApplicationNotification,
@@ -100,6 +98,11 @@ final class FocusEngine {
       DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
       return item
     }
+  }
+
+  /// Called whenever a setting changes, to re-apply the look.
+  func settingsChanged() {
+    evaluate(reason: "settings")
   }
 
   // MARK: - Evaluation
